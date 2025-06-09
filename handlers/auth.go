@@ -1,23 +1,19 @@
 package handlers
 
 import (
-	"chatapp-backend/models"
 	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-
-	time.Sleep(1 * time.Second)
 
 	type Login struct {
 		Email    string
@@ -32,24 +28,32 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user models.User
-	err = db.Where(&models.User{Email: login.Email}).First(&user).Error
-	if err != nil {
-		sugar.Debug(err)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			http.Error(w, "", http.StatusUnauthorized)
-			return
-		}
+	type Result struct {
+		userID   uint64
+		password []byte
 	}
 
-	err = bcrypt.CompareHashAndPassword(user.Password, []byte(login.Password))
+	var result Result
+	err = db.QueryRow("SELECT id, password FROM users WHERE email = ?", login.Email).Scan(&result.userID, &result.password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			sugar.Debug(err)
+			http.Error(w, "", http.StatusUnauthorized)
+		} else {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword(result.password, []byte(login.Password))
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
 
-	cookie, err := jwt.CreateToken(r.URL.Query().Get("rememberMe") == "true", user.ID)
+	cookie, err := jwt.CreateToken(r.URL.Query().Get("rememberMe") == "true", result.userID)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -61,8 +65,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-
-	time.Sleep(2 * time.Second)
 
 	var registerErrors = make(map[string]string)
 
@@ -90,14 +92,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		w.WriteHeader(http.StatusBadRequest)
-
 		encodeErr := json.NewEncoder(w).Encode(registerErrors)
 		if encodeErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-
+		// sends back 400 with the form field errors
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -115,16 +116,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user := models.User{ID: userID, UserName: "TestUserName", Email: registration.Email, Password: passwordBytes}
-
-	result := db.Create(&user)
-	if result.Error != nil {
-		sugar.Debug(result.Error)
-		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			http.Error(w, "Email is already taken", http.StatusConflict)
-		} else {
-			http.Error(w, "", http.StatusInternalServerError)
-		}
+	_, err = db.Exec("INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)", userID, registration.Email, "TestUserName", "TestDisplayName", "", passwordBytes)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 }

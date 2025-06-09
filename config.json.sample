@@ -2,9 +2,9 @@
     "Address": "127.0.0.1",
     "Port": "5083",
     "SnowflakeWorkerID": 0,
-    "MysqlUser": "user",
-    "MysqlPassword": "password",
-    "MysqlAddress": "127.0.0.1",
-    "MysqlPort": "3306",
-    "MysqlDatabase": "dbname"
+    "DbUser": "root",
+    "DbPassword": "password",
+    "DbAddress": "127.0.0.1",
+    "DbPort": "3306",
+    "DbDatabase": "dbname"
 }

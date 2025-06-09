@@ -2,15 +2,21 @@ package handlers
 
 import (
 	"chatapp-backend/utils/jwt"
+	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 )
 
+type contextKey string
+
+const userIDKey contextKey = "userID"
+
 func Middleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// fmt.Println(r)
-		// fmt.Println("start", "method", r.Method, "path", r.URL.Path)
+		fmt.Println("start", "method", r.Method, "path", r.URL.Path)
 		// defer fmt.Println("end", "method", r.Method, "path", r.URL.Path)
 
 		receivedCookie, err := r.Cookie("JWT")
@@ -41,26 +47,26 @@ func Middleware(next func(http.ResponseWriter, *http.Request)) func(http.Respons
 		}
 
 		// check if user exists in database
-		// var user models.User
-		// err = db.First(&user, userToken.UserID).Error
+		// var exists bool
+		// err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&exists)
 		// if err != nil {
-		// 	sugar.Debug(err)
-		// 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// 		http.Error(w, "", http.StatusUnauthorized)
-		// 		return
-		// 	}
+		// 	sugar.Error(err)
 		// 	http.Error(w, "", http.StatusInternalServerError)
 		// 	return
 		// }
 
-		// renew JWT and cookie
+		// if !exists {
+		// 	http.Error(w, "", http.StatusUnauthorized)
+		// 	return
+		// }
 
+		// renew JWT and cookie
 		timeSinceLast := time.Now().UTC().Sub(userToken.IssuedAt.Time)
 
 		if timeSinceLast >= 15*time.Minute {
 			updatedCookie, err := jwt.CreateToken(userToken.Remember, userToken.UserID)
 			if err != nil {
-				sugar.Debug(err)
+				sugar.Error(err)
 				http.Error(w, "Couldn't renew cookie", http.StatusInternalServerError)
 				return
 			}
@@ -68,7 +74,7 @@ func Middleware(next func(http.ResponseWriter, *http.Request)) func(http.Respons
 			http.SetCookie(w, &updatedCookie)
 		}
 
-		// fmt.Printf("User %s is back!\n", user.Email)
-
+		// this passes the authenticated user's ID to next handler
+		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userToken.UserID)))
 	}
 }
