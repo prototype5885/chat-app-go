@@ -13,15 +13,13 @@ import (
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-
 	type Login struct {
 		Email    string
 		Password string
 	}
 
 	var login Login
-	err := decoder.Decode(&login)
+	err := json.NewDecoder(r.Body).Decode(&login)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusBadRequest)
