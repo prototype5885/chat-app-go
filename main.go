@@ -142,8 +142,11 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.HandleFunc("GET /api/user/{id}", handlers.Middleware(handlers.User))
 
-	http.HandleFunc("POST /api/server", handlers.Middleware(handlers.CreateServer))
-	http.HandleFunc("GET /api/server/all", handlers.Middleware(handlers.GetServerList))
+	http.HandleFunc("POST /api/server/create", handlers.Middleware(handlers.CreateServer))
+	http.HandleFunc("GET /api/server/fetch", handlers.Middleware(handlers.GetServerList))
+
+	http.HandleFunc("POST /api/channel/create", handlers.Middleware(handlers.CreateChannel))
+	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.GetChannelList))
 
 	return http.ListenAndServe(fmt.Sprintf("%s:%s", config.Address, config.Port), nil)
 }
