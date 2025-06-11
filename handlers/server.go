@@ -17,7 +17,12 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", serverID, userID, "ServerName", "", "")
+	serverName := r.URL.Query().Get("name")
+	if serverName == "" {
+		serverName = "My server"
+	}
+
+	_, err = db.Exec("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", serverID, userID, serverName, "", "")
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
