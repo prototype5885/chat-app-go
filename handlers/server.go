@@ -8,8 +8,6 @@ import (
 )
 
 func CreateServer(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(userIDKey).(uint64)
-
 	serverID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
@@ -22,12 +20,22 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 		serverName = "My server"
 	}
 
-	_, err = db.Exec("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", serverID, userID, serverName, "", "")
+	server := models.Server{
+		ID:      serverID,
+		OwnerID: r.Context().Value(userIDKey).(uint64),
+		Name:    serverName,
+		Picture: "",
+		Banner:  "",
+	}
+
+	_, err = db.Exec("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", server.ID, server.OwnerID, server.Name, server.Picture, server.Banner)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+
+	json.NewEncoder(w).Encode(server)
 }
 
 func GetServerList(w http.ResponseWriter, r *http.Request) {
