@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/models"
+	"chatapp-backend/utils/fileHandlers"
 	"chatapp-backend/utils/snowflake"
 	"encoding/json"
 	"net/http"
@@ -20,11 +21,18 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 		serverName = "My server"
 	}
 
+	picPath, err := fileHandlers.HandleAvatarPicture(r)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
 	server := models.Server{
 		ID:      serverID,
 		OwnerID: r.Context().Value(userIDKey).(uint64),
 		Name:    serverName,
-		Picture: "",
+		Picture: picPath,
 		Banner:  "",
 	}
 

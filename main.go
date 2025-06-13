@@ -148,6 +148,8 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 	http.HandleFunc("POST /api/channel/create", handlers.Middleware(handlers.CreateChannel))
 	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.GetChannelList))
 
+	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+
 	return http.ListenAndServe(fmt.Sprintf("%s:%s", config.Address, config.Port), nil)
 }
 
