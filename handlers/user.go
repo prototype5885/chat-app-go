@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func User(w http.ResponseWriter, r *http.Request) {
+func User(userID uint64, w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
 
 	id, err := strconv.ParseUint(idString, 10, 64)

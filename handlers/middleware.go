@@ -2,18 +2,13 @@ package handlers
 
 import (
 	"chatapp-backend/utils/jwt"
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"time"
 )
 
-type contextKey string
-
-const userIDKey contextKey = "userID"
-
-func Middleware(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// fmt.Println(r)
 		fmt.Println("start", "method", r.Method, "path", r.URL.Path)
@@ -75,6 +70,6 @@ func Middleware(next func(http.ResponseWriter, *http.Request)) func(http.Respons
 		}
 
 		// this passes the authenticated user's ID to next handler
-		next(w, r.WithContext(context.WithValue(r.Context(), userIDKey, userToken.UserID)))
+		next(userToken.UserID, w, r)
 	}
 }

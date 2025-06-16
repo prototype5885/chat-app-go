@@ -138,7 +138,7 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 	http.HandleFunc("POST /api/auth/login", handlers.Login)
 	http.HandleFunc("POST /api/auth/register", handlers.Register)
 
-	http.HandleFunc("GET /api/isLoggedIn", handlers.Middleware(func(w http.ResponseWriter, r *http.Request) {}))
+	http.HandleFunc("GET /api/isLoggedIn", handlers.Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
 
 	http.HandleFunc("GET /api/user/{id}", handlers.Middleware(handlers.User))
 

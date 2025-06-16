@@ -5,6 +5,6 @@ import (
 	"net/http"
 )
 
-func Test(w http.ResponseWriter, r *http.Request) {
+func Test(userUD uint64, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "test msg")
 }

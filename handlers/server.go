@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func CreateServer(w http.ResponseWriter, r *http.Request) {
+func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	serverID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
@@ -30,7 +30,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 
 	server := models.Server{
 		ID:      serverID,
-		OwnerID: r.Context().Value(userIDKey).(uint64),
+		OwnerID: userID,
 		Name:    serverName,
 		Picture: picPath,
 		Banner:  "",
@@ -46,9 +46,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(server)
 }
 
-func GetServerList(w http.ResponseWriter, r *http.Request) {
-	// userID := r.Context().Value(userIDKey).(uint64)
-
+func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT * FROM servers")
 	if err != nil {
 		sugar.Error(err)
