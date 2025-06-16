@@ -22,7 +22,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	picPath, err := fileHandlers.HandleAvatarPicture(r)
-	if err != nil {
+	if err != nil && err != http.ErrMissingFile {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusBadRequest)
 		return
