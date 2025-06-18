@@ -55,7 +55,7 @@ func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var servers []models.Server
+	var servers []models.Server = []models.Server{}
 
 	for rows.Next() {
 		var server models.Server

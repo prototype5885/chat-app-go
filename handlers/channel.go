@@ -64,7 +64,7 @@ func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var channels []models.Channel
+	var channels []models.Channel = []models.Channel{}
 
 	for rows.Next() {
 		var channel models.Channel
