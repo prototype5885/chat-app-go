@@ -119,6 +119,7 @@ func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
 				channel_id BIGINT UNSIGNED NOT NULL,
 				user_id BIGINT UNSIGNED NOT NULL,
 				message TEXT NOT NULL,
+				attachments BLOB NOT NULL,
 				edited BOOLEAN NOT NULL,
 				FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -148,6 +149,9 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.HandleFunc("POST /api/channel/create", handlers.Middleware(handlers.CreateChannel))
 	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.GetChannelList))
+
+	http.HandleFunc("POST /api/message/create", handlers.Middleware(handlers.CreateMessage))
+	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.GetMessageList))
 
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
 
