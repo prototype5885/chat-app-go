@@ -3,6 +3,7 @@ package handlers
 import (
 	"chatapp-backend/models"
 	"chatapp-backend/utils/snowflake"
+	ws "chatapp-backend/utils/websocket"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -39,12 +40,27 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO channels VALUES(?, ?, ?)", channelID, serverID, channelName)
+	channel := models.Channel{
+		ID:       channelID,
+		ServerID: serverID,
+		Name:     channelName,
+	}
+
+	_, err = db.Exec("INSERT INTO channels VALUES(?, ?, ?)", channel.ID, channel.ServerID, channel.Name)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+
+	messageBytes, err := ws.PrepareMessage(ws.ChannelCreated, channel)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	ws.BroadcastMessage(messageBytes)
 }
 
 func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {

@@ -4,6 +4,7 @@ import (
 	"chatapp-backend/handlers"
 	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
+	ws "chatapp-backend/utils/websocket"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -150,6 +151,8 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
 
+	http.HandleFunc("/ws", handlers.Middleware(ws.Connect))
+
 	return http.ListenAndServe(fmt.Sprintf("%s:%s", config.Address, config.Port), nil)
 }
 
@@ -167,6 +170,11 @@ func main() {
 	}
 
 	db, err := setupDatabase(cfg)
+	if err != nil {
+		sugar.Fatal(err)
+	}
+
+	err = ws.Setup(sugar)
 	if err != nil {
 		sugar.Fatal(err)
 	}
