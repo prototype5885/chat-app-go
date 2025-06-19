@@ -49,10 +49,13 @@ func Connect(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer conn.Close()
+
 	sessionID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 
 	client := Client{
@@ -77,11 +80,6 @@ func Connect(userID uint64, w http.ResponseWriter, r *http.Request) {
 
 func Disconnect(sessionID uint64) {
 	sugar.Debugf("Disconnecting session ID [%d]", sessionID)
-	err := clients[sessionID].Conn.Close()
-	if err != nil {
-		sugar.Error(err)
-	}
-
 	delete(clients, sessionID)
 }
 
