@@ -2,12 +2,12 @@ package ws
 
 import (
 	"chatapp-backend/utils/snowflake"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 )
 
@@ -128,7 +128,7 @@ func BroadcastMessage(messageBytes []byte) {
 }
 
 func PrepareMessage(messageType byte, messageToSend any) ([]byte, error) {
-	jsonBytes, err := json.Marshal(messageToSend)
+	jsonBytes, err := msgpack.Marshal(messageToSend)
 	if err != nil {
 		return nil, err
 	}

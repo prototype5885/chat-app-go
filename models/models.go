@@ -8,24 +8,24 @@ type User struct {
 }
 
 type Server struct {
-	ID      uint64 `json:"id,string"`
-	OwnerID uint64 `json:"ownerID,string"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
-	Banner  string `json:"banner"`
+	ID      uint64 `msgpack:"id"`
+	OwnerID uint64 `msgpack:"ownerID"`
+	Name    string `msgpack:"name"`
+	Picture string `msgpack:"picture"`
+	Banner  string `msgpack:"banner"`
 }
 
 type Channel struct {
-	ID       uint64 `json:"id,string"`
-	ServerID uint64 `json:"serverID,string"`
-	Name     string `json:"name"`
+	ID       uint64 `msgpack:"id"`
+	ServerID uint64 `msgpack:"serverID"`
+	Name     string `msgpack:"name"`
 }
 
 type Message struct {
-	ID          uint64 `json:"id,string"`
-	ChannelID   uint64 `json:"channelID,string"`
-	UserID      uint64 `json:"userID,string"`
-	Message     string `json:"message"`
-	Attachments []byte `json:"attachments"`
-	Edited      bool   `json:"edited"`
+	ID          uint64 `msgpack:"id"`
+	ChannelID   uint64 `msgpack:"channelID"`
+	UserID      uint64 `msgpack:"userID"`
+	Message     string `msgpack:"message"`
+	Attachments []byte `msgpack:"attachments"`
+	Edited      bool   `msgpack:"edited"`
 }

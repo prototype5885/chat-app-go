@@ -4,11 +4,11 @@ import (
 	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,7 +19,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var login Login
-	err := json.NewDecoder(r.Body).Decode(&login)
+	err := msgpack.NewDecoder(r.Body).Decode(&login)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusBadRequest)
@@ -62,8 +62,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
-
 	var registerErrors = make(map[string]string)
 
 	type Registration struct {
@@ -73,7 +71,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var registration Registration
-	err := decoder.Decode(&registration)
+	err := msgpack.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusBadRequest)
@@ -90,7 +88,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		encodeErr := json.NewEncoder(w).Encode(registerErrors)
+		encodeErr := msgpack.NewEncoder(w).Encode(registerErrors)
 		if encodeErr != nil {
 			http.Error(w, "", http.StatusInternalServerError)
 			return

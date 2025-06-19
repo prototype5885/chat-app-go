@@ -4,8 +4,9 @@ import (
 	"chatapp-backend/models"
 	"chatapp-backend/utils/fileHandlers"
 	"chatapp-backend/utils/snowflake"
-	"encoding/json"
 	"net/http"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -43,7 +44,7 @@ func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(server)
+	msgpack.NewEncoder(w).Encode(server)
 }
 
 func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -76,5 +77,5 @@ func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(servers)
+	msgpack.NewEncoder(w).Encode(servers)
 }

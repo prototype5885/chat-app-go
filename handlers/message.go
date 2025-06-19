@@ -4,21 +4,23 @@ import (
 	"chatapp-backend/models"
 	"chatapp-backend/utils/snowflake"
 	ws "chatapp-backend/utils/websocket"
-	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	type AddMessageRequest struct {
-		Message   string `json:"message"`
-		ChannelID uint64 `json:"channelID,string"`
-		ReplyID   uint64 `json:"replyID,string"`
+		Message   string `msgpack:"message"`
+		ChannelID uint64 `msgpack:"channelID"`
+		ReplyID   uint64 `msgpack:"replyID"`
 	}
 
 	var messageRequest AddMessageRequest
-	err := json.NewDecoder(r.Body).Decode(&messageRequest)
+	err := msgpack.NewDecoder(r.Body).Decode(&messageRequest)
 	if err != nil {
+		sugar.Error(err)
 		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
@@ -96,5 +98,5 @@ func GetMessageList(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(messages)
+	msgpack.NewEncoder(w).Encode(messages)
 }
