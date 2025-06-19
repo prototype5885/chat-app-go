@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/models"
+	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	ws "chatapp-backend/utils/websocket"
 	"net/http"
@@ -10,21 +11,21 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
+func CreateChannel(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
 	}
 
-	ownsServer, err := isServerOwner(userID, serverID)
+	ownsServer, err := isServerOwner(userToken.UserID, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 	if !ownsServer {
-		sugar.Warnf("User ID [%d] tried to create a channel in server ID [%d] they don't own\n", userID, serverID)
+		sugar.Warnf("User ID [%d] tried to create a channel in server ID [%d] they don't own\n", userToken.UserID, serverID)
 		http.Error(w, "You don't own this server", http.StatusForbidden)
 		return
 	}
@@ -64,7 +65,7 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 	ws.BroadcastMessage(messageBytes)
 }
 
-func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
+func GetChannelList(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)

@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	"fmt"
 	"net/http"
@@ -35,8 +36,8 @@ func Setup(_sugar *zap.SugaredLogger) error {
 	return nil
 }
 
-func Connect(userID uint64, w http.ResponseWriter, r *http.Request) {
-	sugar.Debugf("Connecting user ID [%d] to WebSocket", userID)
+func Connect(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+	sugar.Debugf("Connecting user ID [%d] to WebSocket", userToken.UserID)
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  4096,
 		WriteBufferSize: 4096,
@@ -59,7 +60,7 @@ func Connect(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := Client{
-		UserID:            userID,
+		UserID:            userToken.UserID,
 		Conn:              conn,
 		SessionID:         sessionID,
 		WriteChannel:      make(chan []byte, 10),

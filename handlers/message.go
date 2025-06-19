@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/models"
+	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	ws "chatapp-backend/utils/websocket"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
+func CreateMessage(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
 	type AddMessageRequest struct {
 		Message   string `msgpack:"message"`
 		ChannelID uint64 `msgpack:"channelID"`
@@ -37,7 +38,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	msg := models.Message{
 		ID:          messageID,
 		ChannelID:   messageRequest.ChannelID,
-		UserID:      userID,
+		UserID:      userToken.UserID,
 		Message:     messageRequest.Message,
 		Attachments: []byte{},
 		Edited:      false,
@@ -60,7 +61,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	ws.BroadcastMessage(messageBytes)
 }
 
-func GetMessageList(userID uint64, w http.ResponseWriter, r *http.Request) {
+func GetMessageList(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
 	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
