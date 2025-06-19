@@ -2,6 +2,7 @@ package main
 
 import (
 	"chatapp-backend/handlers"
+	"chatapp-backend/utils/caching"
 	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	ws "chatapp-backend/utils/websocket"
@@ -174,6 +175,11 @@ func main() {
 	}
 
 	db, err := setupDatabase(cfg)
+	if err != nil {
+		sugar.Fatal(err)
+	}
+
+	err = caching.Setup()
 	if err != nil {
 		sugar.Fatal(err)
 	}
