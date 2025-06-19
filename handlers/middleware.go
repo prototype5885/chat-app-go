@@ -42,18 +42,18 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		}
 
 		// check if user exists in database
-		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&exists)
-		if err != nil {
-			sugar.Error(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
+		// var exists bool
+		// err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&exists)
+		// if err != nil {
+		// 	sugar.Error(err)
+		// 	http.Error(w, "", http.StatusInternalServerError)
+		// 	return
+		// }
 
-		if !exists {
-			http.Error(w, "", http.StatusUnauthorized)
-			return
-		}
+		// if !exists {
+		// 	http.Error(w, "", http.StatusUnauthorized)
+		// 	return
+		// }
 
 		// renew JWT and cookie
 		timeSinceLast := time.Now().UTC().Sub(userToken.IssuedAt.Time)
