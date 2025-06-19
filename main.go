@@ -135,7 +135,7 @@ func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
 func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) error {
 	handlers.Setup(sugar, db)
 
-	http.HandleFunc("GET /api/test", handlers.Middleware(handlers.Test))
+	http.HandleFunc("GET /api/test", handlers.Test)
 
 	http.HandleFunc("POST /api/auth/login", handlers.Login)
 	http.HandleFunc("POST /api/auth/register", handlers.Register)
