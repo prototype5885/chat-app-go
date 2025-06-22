@@ -1,12 +1,44 @@
 package handlers
 
 import (
+	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/jwt"
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 )
+
+func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Request)) func(uint64, http.ResponseWriter, *http.Request) {
+	return func(userID uint64, w http.ResponseWriter, r *http.Request) {
+		sessionCookie, err := r.Cookie("session")
+		if err != nil {
+			sugar.Debug(err)
+			switch {
+			case errors.Is(err, http.ErrNoCookie):
+				http.Error(w, "No session cookie was provided", http.StatusUnauthorized)
+			default:
+				http.Error(w, "Couldn't read session cookie", http.StatusInternalServerError)
+			}
+			return
+		}
+
+		sessionID, err := strconv.ParseUint(sessionCookie.Value, 10, 64)
+		if err != nil {
+			sugar.Error(err)
+			http.Error(w, "Session cookie is in improper format", http.StatusBadRequest)
+			return
+		}
+
+		if hub.IsUserConnected(sessionID) {
+			next(userID, sessionID, w, r)
+		} else {
+			http.Error(w, "You are not connected to websocket", http.StatusUnauthorized)
+			return
+		}
+	}
+}
 
 func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

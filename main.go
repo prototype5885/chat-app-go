@@ -140,6 +140,7 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.HandleFunc("POST /api/auth/login", handlers.Login)
 	http.HandleFunc("POST /api/auth/register", handlers.Register)
+	http.HandleFunc("GET /api/auth/newSession", handlers.Middleware(handlers.NewSession))
 
 	http.HandleFunc("GET /api/isLoggedIn", handlers.Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
 
@@ -152,7 +153,7 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.GetChannelList))
 
 	http.HandleFunc("POST /api/message/create", handlers.Middleware(handlers.CreateMessage))
-	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.GetMessageList))
+	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
 
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
 

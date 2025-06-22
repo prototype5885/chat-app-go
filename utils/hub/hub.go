@@ -1,11 +1,12 @@
 package hub
 
 import (
-	"chatapp-backend/utils/snowflake"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
@@ -52,6 +53,26 @@ func Setup(_sugar *zap.SugaredLogger) error {
 
 func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	sugar.Debugf("Connecting user ID [%d] to WebSocket", userID)
+
+	sessionCookie, err := r.Cookie("session")
+	if err != nil {
+		sugar.Debug(err)
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			http.Error(w, "No session cookie was provided", http.StatusUnauthorized)
+		default:
+			http.Error(w, "Couldn't read session cookie", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	sessionID, err := strconv.ParseUint(sessionCookie.Value, 10, 64)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "Session cookie is in improper format", http.StatusBadRequest)
+		return
+	}
+
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  4096,
 		WriteBufferSize: 4096,
@@ -64,23 +85,6 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer conn.Close()
-
-	sessionID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	sessionCookie := http.Cookie{
-		Name:     "session",
-		Value:    fmt.Sprint(sessionID),
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
-	}
-	http.SetCookie(w, &sessionCookie)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	pubsub := rdb.Subscribe(ctx)

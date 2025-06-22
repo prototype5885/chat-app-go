@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/utils/snowflake"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -118,4 +119,25 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+}
+
+func NewSession(_ uint64, w http.ResponseWriter, r *http.Request) {
+	sessionID, err := snowflake.Generate()
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	// TODO possibly encrypt session id with user id together
+
+	sessionCookie := http.Cookie{
+		Name:     "session",
+		Value:    fmt.Sprint(sessionID),
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, &sessionCookie)
 }
