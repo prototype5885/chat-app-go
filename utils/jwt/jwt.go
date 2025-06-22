@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"chatapp-backend/utils/snowflake"
 	"errors"
 	"net/http"
 	"time"
@@ -10,9 +9,8 @@ import (
 )
 
 type UserToken struct {
-	UserID    uint64 `json:"userID"`
-	SessionID uint64 `json:"sessionID"`
-	Remember  bool   `json:"rem"`
+	UserID   uint64 `json:"userID"`
+	Remember bool   `json:"rem"`
 	jwt.RegisteredClaims
 }
 
@@ -33,15 +31,9 @@ func CreateToken(rememberMe bool, userId uint64) (http.Cookie, error) {
 	currentTime := time.Now().UTC()
 	expirationDate := currentTime.Add(tokenLifeTime)
 
-	sessionID, err := snowflake.Generate()
-	if err != nil {
-		return http.Cookie{}, err
-	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserToken{
-		UserID:    userId,
-		SessionID: sessionID,
-		Remember:  rememberMe,
+		UserID:   userId,
+		Remember: rememberMe,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(currentTime),
 			ExpiresAt: jwt.NewNumericDate(expirationDate),
