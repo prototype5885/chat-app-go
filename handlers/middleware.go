@@ -14,19 +14,19 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		fmt.Println("start", "method", r.Method, "path", r.URL.Path)
 		// defer fmt.Println("end", "method", r.Method, "path", r.URL.Path)
 
-		receivedCookie, err := r.Cookie("JWT")
+		jwtCookie, err := r.Cookie("JWT")
 		if err != nil {
 			sugar.Debug(err)
 			switch {
 			case errors.Is(err, http.ErrNoCookie):
-				http.Error(w, "No cookie was provided", http.StatusUnauthorized)
+				http.Error(w, "No jwt cookie was provided", http.StatusUnauthorized)
 			default:
-				http.Error(w, "Couldn't read cookie", http.StatusInternalServerError)
+				http.Error(w, "Couldn't read jwt cookie", http.StatusInternalServerError)
 			}
 			return
 		}
 
-		userToken, err := jwt.VerifyToken(receivedCookie.Value)
+		userToken, err := jwt.VerifyToken(jwtCookie.Value)
 		if err != nil {
 			sugar.Debug(err)
 			http.Error(w, "Couldn't verify JWT", http.StatusBadRequest)
