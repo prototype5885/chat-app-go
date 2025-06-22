@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"chatapp-backend/models"
-	"chatapp-backend/utils/jwt"
+	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/snowflake"
-	ws "chatapp-backend/utils/websocket"
 	"net/http"
 	"strconv"
 
@@ -51,14 +50,19 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := ws.PrepareMessage(ws.MessageCreated, msg)
+	messageBytes, err := hub.PrepareMessage(hub.MessageCreated, msg)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	ws.BroadcastMessage(messageBytes)
+	err = hub.PublishRedis(messageBytes, msg.ChannelID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetMessageList(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -98,6 +102,13 @@ func GetMessageList(userID uint64, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+
+	// err = hub.SubscribeRedis(channelID, "channel", sessionID)
+	// if err != nil {
+	// 	sugar.Error(err)
+	// 	http.Error(w, "", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	msgpack.NewEncoder(w).Encode(messages)
 }

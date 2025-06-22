@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"chatapp-backend/models"
-	"chatapp-backend/utils/jwt"
+	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/snowflake"
-	ws "chatapp-backend/utils/websocket"
 	"net/http"
 	"strconv"
 
@@ -55,14 +54,19 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := ws.PrepareMessage(ws.ChannelCreated, channel)
+	messageBytes, err := hub.PrepareMessage(hub.ChannelCreated, channel)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	ws.BroadcastMessage(messageBytes)
+	err = hub.PublishRedis(messageBytes, serverID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
