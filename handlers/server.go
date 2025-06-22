@@ -3,14 +3,13 @@ package handlers
 import (
 	"chatapp-backend/models"
 	"chatapp-backend/utils/fileHandlers"
-	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	"net/http"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func CreateServer(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	serverID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
@@ -32,7 +31,7 @@ func CreateServer(userToken jwt.UserToken, w http.ResponseWriter, r *http.Reques
 
 	server := models.Server{
 		ID:      serverID,
-		OwnerID: userToken.UserID,
+		OwnerID: userID,
 		Name:    serverName,
 		Picture: picPath,
 		Banner:  "",
@@ -48,7 +47,7 @@ func CreateServer(userToken jwt.UserToken, w http.ResponseWriter, r *http.Reques
 	msgpack.NewEncoder(w).Encode(server)
 }
 
-func GetServerList(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT * FROM servers")
 	if err != nil {
 		sugar.Error(err)

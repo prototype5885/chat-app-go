@@ -11,21 +11,21 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func CreateChannel(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
 	}
 
-	ownsServer, err := isServerOwner(userToken.UserID, serverID)
+	ownsServer, err := isServerOwner(userID, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 	if !ownsServer {
-		sugar.Warnf("User ID [%d] tried to create a channel in server ID [%d] they don't own\n", userToken.UserID, serverID)
+		sugar.Warnf("User ID [%d] tried to create a channel in server ID [%d] they don't own\n", userID, serverID)
 		http.Error(w, "You don't own this server", http.StatusForbidden)
 		return
 	}
@@ -65,7 +65,7 @@ func CreateChannel(userToken jwt.UserToken, w http.ResponseWriter, r *http.Reque
 	ws.BroadcastMessage(messageBytes)
 }
 
-func GetChannelList(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)

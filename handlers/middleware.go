@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Middleware(next func(jwt.UserToken, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// fmt.Println(r)
 		fmt.Println("start", "method", r.Method, "path", r.URL.Path)
@@ -70,6 +70,6 @@ func Middleware(next func(jwt.UserToken, http.ResponseWriter, *http.Request)) fu
 		}
 
 		// this passes the authenticated user's ID to next handler
-		next(userToken, w, r)
+		next(userToken.UserID, w, r)
 	}
 }

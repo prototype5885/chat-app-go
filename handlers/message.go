@@ -11,7 +11,7 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-func CreateMessage(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	type AddMessageRequest struct {
 		Message   string `msgpack:"message"`
 		ChannelID uint64 `msgpack:"channelID"`
@@ -38,7 +38,7 @@ func CreateMessage(userToken jwt.UserToken, w http.ResponseWriter, r *http.Reque
 	msg := models.Message{
 		ID:          messageID,
 		ChannelID:   messageRequest.ChannelID,
-		UserID:      userToken.UserID,
+		UserID:      userID,
 		Message:     messageRequest.Message,
 		Attachments: []byte{},
 		Edited:      false,
@@ -61,7 +61,7 @@ func CreateMessage(userToken jwt.UserToken, w http.ResponseWriter, r *http.Reque
 	ws.BroadcastMessage(messageBytes)
 }
 
-func GetMessageList(userToken jwt.UserToken, w http.ResponseWriter, r *http.Request) {
+func GetMessageList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
