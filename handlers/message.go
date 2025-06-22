@@ -103,12 +103,12 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	// err = hub.SubscribeRedis(channelID, "channel", sessionID)
-	// if err != nil {
-	// 	sugar.Error(err)
-	// 	http.Error(w, "", http.StatusInternalServerError)
-	// 	return
-	// }
+	err = hub.SubscribeRedis(channelID, "channel", sessionID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	msgpack.NewEncoder(w).Encode(messages)
 }
