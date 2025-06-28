@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/utils/fileHandlers"
 	"chatapp-backend/utils/snowflake"
 	"net/http"
+	"strconv"
 
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -78,4 +79,52 @@ func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 
 	msgpack.NewEncoder(w).Encode(servers)
+}
+
+func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
+	paramServerID := r.URL.Query().Get("serverID")
+	if paramServerID == "" {
+		http.Error(w, "No server ID was specified for deletion", http.StatusBadRequest)
+		return
+	}
+
+	serverID, err := strconv.ParseUint(paramServerID, 10, 64)
+	if err != nil {
+		http.Error(w, "Server ID specified for deletion is not a number", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM servers WHERE id = ? AND owner_id = ?", serverID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+}
+
+func RenameServer(userID uint64, w http.ResponseWriter, r *http.Request) {
+	paramServerID := r.URL.Query().Get("serverID")
+	if paramServerID == "" {
+		http.Error(w, "No server ID was specified for rename", http.StatusBadRequest)
+		return
+	}
+
+	serverID, err := strconv.ParseUint(paramServerID, 10, 64)
+	if err != nil {
+		http.Error(w, "Server ID specified for rename is not a number", http.StatusBadRequest)
+		return
+	}
+
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "Server name can't be empty", http.StatusBadRequest)
+		return
+	}
+
+	_, err = db.Exec("UPDATE servers SET name = ? WHERE id = ? AND owner_id = ?", name, serverID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
