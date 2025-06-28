@@ -15,8 +15,8 @@ import (
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	type Login struct {
-		Email    string
-		Password string
+		Email    string `msgpack:"email"`
+		Password string `msgpack:"password"`
 	}
 
 	var login Login
@@ -66,9 +66,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	var registerErrors = make(map[string]string)
 
 	type Registration struct {
-		Email           string `validate:"email"`
-		Password        string `validate:"eqfield=ConfirmPassword,min=6"`
-		ConfirmPassword string
+		Email           string `msgpack:"email" validate:"email"`
+		Password        string `msgpack:"password" validate:"eqfield=ConfirmPassword,min=6"`
+		ConfirmPassword string `msgpack:"confirmPassword"`
 	}
 
 	var registration Registration
@@ -81,21 +81,25 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	err = validate.Struct(registration)
 	if err != nil {
-		sugar.Debug(err)
 		var validateErrs validator.ValidationErrors
 		if errors.As(err, &validateErrs) {
 			for _, e := range validateErrs {
 				registerErrors[e.Field()] = e.Tag()
 			}
-		}
-
-		encodeErr := msgpack.NewEncoder(w).Encode(registerErrors)
-		if encodeErr != nil {
+		} else {
+			sugar.Error(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
+
 		// sends back 400 with the form field errors
 		w.WriteHeader(http.StatusBadRequest)
+		encodeErr := msgpack.NewEncoder(w).Encode(registerErrors)
+		if encodeErr != nil {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 
