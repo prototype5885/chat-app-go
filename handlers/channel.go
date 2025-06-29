@@ -69,7 +69,7 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
+func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
@@ -102,6 +102,13 @@ func GetChannelList(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := rows.Err(); err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	err = hub.SubscribeRedis(serverID, "server", sessionID)
+	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return

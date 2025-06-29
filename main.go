@@ -154,7 +154,7 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 	http.HandleFunc("POST /api/server/rename", handlers.Middleware(handlers.RenameServer))
 
 	http.HandleFunc("POST /api/channel/create", handlers.Middleware(handlers.CreateChannel))
-	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.GetChannelList))
+	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetChannelList)))
 
 	http.HandleFunc("POST /api/message/create", handlers.Middleware(handlers.CreateMessage))
 	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
