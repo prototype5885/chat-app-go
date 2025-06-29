@@ -21,6 +21,8 @@ import (
 type ConfigFile struct {
 	Address           string
 	Port              string
+	TlsCert           string
+	TlsKey            string
 	SnowflakeWorkerID uint64
 	DbUser            string
 	DbPassword        string
@@ -161,7 +163,11 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.HandleFunc("/ws", handlers.Middleware(hub.HandleClient))
 
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", config.Address, config.Port), nil)
+	address := fmt.Sprintf("%s:%s", config.Address, config.Port)
+	if config.TlsCert != "" && config.TlsKey != "" {
+		return http.ListenAndServeTLS(address, config.TlsCert, config.TlsKey, nil)
+	}
+	return http.ListenAndServe(address, nil)
 }
 
 func main() {

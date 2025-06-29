@@ -1,6 +1,8 @@
 {
     "Address": "127.0.0.1",
     "Port": "5083",
+    "TlsCert": "example.crt", // uses http if empty
+    "TlsKey": "example.key", // uses http if empty
     "SnowflakeWorkerID": 0,
     "DbUser": "root",
     "DbPassword": "password",
