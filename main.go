@@ -132,6 +132,32 @@ func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
 		return nil, err
 	}
 
+	_, err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS server_members (
+				server_id BIGINT UNSIGNED NOT NULL,
+				user_id BIGINT UNSIGNED NOT NULL,
+				since TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY (server_id, user_id),
+				FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+			);
+		`)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS user_blocks (
+				user_id BIGINT UNSIGNED PRIMARY KEY,
+				blocked_id BIGINT UNSIGNED NOT NULL,
+				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+				FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE
+			);
+		`)
+	if err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }
 
