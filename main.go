@@ -184,6 +184,7 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 
 	http.HandleFunc("POST /api/message/create", handlers.Middleware(handlers.CreateMessage))
 	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
+	http.HandleFunc("POST /api/message/delete", handlers.Middleware(handlers.DeleteMessage))
 
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
 

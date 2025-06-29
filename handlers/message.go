@@ -112,3 +112,46 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 
 	msgpack.NewEncoder(w).Encode(messages)
 }
+
+func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
+	paramMessageID := r.URL.Query().Get("messageID")
+	if paramMessageID == "" {
+		http.Error(w, "No server ID was specified for deletion", http.StatusBadRequest)
+		return
+	}
+
+	messageID, err := strconv.ParseUint(paramMessageID, 10, 64)
+	if err != nil {
+		http.Error(w, "Server ID specified for deletion is not a number", http.StatusBadRequest)
+		return
+	}
+
+	var channelID uint64
+	err = db.QueryRow("SELECT channel_id FROM messages WHERE id = ?", messageID).Scan(&channelID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec("DELETE FROM messages WHERE id = ? AND user_id = ?", messageID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	messageBytes, err := hub.PrepareMessage(hub.MessageDeleted, messageID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	err = hub.PublishRedis(messageBytes, channelID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+}
