@@ -45,11 +45,18 @@ func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = addServerMember(serverID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
 	msgpack.NewEncoder(w).Encode(server)
 }
 
 func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT * FROM servers")
+	rows, err := db.Query("SELECT s.* FROM servers s JOIN server_members m ON s.id = m.server_id WHERE m.user_id = ?", userID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

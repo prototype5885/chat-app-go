@@ -12,3 +12,11 @@ func isServerOwner(userID uint64, serverID uint64) (bool, error) {
 	}
 	return true, nil
 }
+
+func addServerMember(serverID uint64, userID uint64) error {
+	_, err := db.Exec("INSERT INTO server_members (server_id, user_id) VALUES (?, ?)", serverID, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
