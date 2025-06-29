@@ -23,5 +23,8 @@ go.work
 # Others
 config.json
 *.log
+*.crt
+*.key
+*.pem
 
 public/
