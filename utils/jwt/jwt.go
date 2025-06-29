@@ -31,7 +31,7 @@ func CreateToken(rememberMe bool, userId uint64) (http.Cookie, error) {
 	currentTime := time.Now().UTC()
 	expirationDate := currentTime.Add(tokenLifeTime)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserToken{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, UserToken{
 		UserID:   userId,
 		Remember: rememberMe,
 		RegisteredClaims: jwt.RegisteredClaims{
