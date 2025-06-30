@@ -170,7 +170,6 @@ func PublishRedis(messageBytes []byte, targetID uint64) error {
 }
 
 func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
-	sugar.Debugf("Subscribing Session ID [%d] to redis channel [%d] of type [%s]\n", sessionID, key, channelType)
 	client, exists := clients[sessionID]
 	if !exists {
 		return fmt.Errorf("session ID [%d] tried to subscribe to redis channel [%d] but the session isn't connected to hub", sessionID, key)
