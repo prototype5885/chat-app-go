@@ -4,7 +4,6 @@ import (
 	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/jwt"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,10 +41,6 @@ func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Reques
 
 func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// fmt.Println(r)
-		fmt.Println("start", "method", r.Method, "path", r.URL.Path)
-		// defer fmt.Println("end", "method", r.Method, "path", r.URL.Path)
-
 		jwtCookie, err := r.Cookie("JWT")
 		if err != nil {
 			sugar.Debug(err)
