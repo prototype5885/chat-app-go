@@ -30,7 +30,8 @@ func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Reques
 			return
 		}
 
-		if hub.IsUserConnected(sessionID) {
+		_, exists := hub.GetClient(sessionID)
+		if exists {
 			next(userID, sessionID, w, r)
 		} else {
 			http.Error(w, "You are not connected to websocket", http.StatusUnauthorized)
