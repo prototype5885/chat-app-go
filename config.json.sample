@@ -8,5 +8,9 @@
     "DbPassword": "password",
     "DbAddress": "127.0.0.1",
     "DbPort": "3306",
-    "DbDatabase": "dbname"
+    "DbDatabase": "dbname",
+    "SmtpUsername": "example@example.com",
+    "SmtpPassword": "password",
+    "SmtpServer": "smtp.example.com",
+    "SmtpPort": 587
 }

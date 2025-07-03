@@ -2,6 +2,7 @@ package main
 
 import (
 	"chatapp-backend/handlers"
+	"chatapp-backend/utils/email"
 	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/jwt"
 
@@ -30,6 +31,10 @@ type ConfigFile struct {
 	DbAddress         string
 	DbPort            string
 	DbDatabase        string
+	SmtpUsername      string
+	SmtpPassword      string
+	SmtpServer        string
+	SmtpPort          int
 }
 
 func setupLogger() (*zap.SugaredLogger, error) {
@@ -170,8 +175,8 @@ func setupRedis() *redis.Client {
 	})
 }
 
-func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) error {
-	handlers.Setup(sugar, db)
+func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port string, tlsCert string, tlsKey string, sugar *zap.SugaredLogger, db *sql.DB) error {
+	handlers.Setup(sugar, redisClient, db)
 
 	http.HandleFunc("GET /api/test", handlers.Test)
 
@@ -195,15 +200,16 @@ func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) erro
 	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
 	http.HandleFunc("POST /api/message/delete", handlers.Middleware(handlers.DeleteMessage))
 
+	http.HandleFunc("GET /api/email/confirm", handlers.ConfirmEmail)
+
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
 
 	http.HandleFunc("/ws", handlers.Middleware(hub.HandleClient))
 
-	address := fmt.Sprintf("%s:%s", config.Address, config.Port)
-	if config.TlsCert != "" && config.TlsKey != "" {
-		return http.ListenAndServeTLS(address, config.TlsCert, config.TlsKey, nil)
+	if isHttps {
+		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", address, port), tlsCert, tlsKey, nil)
 	}
-	return http.ListenAndServe(address, nil)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", address, port), nil)
 }
 
 func main() {
@@ -233,11 +239,24 @@ func main() {
 		sugar.Fatal(err)
 	}
 
+	isHttps := (cfg.TlsCert != "" && cfg.TlsKey != "")
+
+	var httpProtocol string
+	if isHttps {
+		httpProtocol = "https"
+	} else {
+		httpProtocol = "http"
+	}
+
+	fullAddress := fmt.Sprintf("%s://%s:%s", httpProtocol, cfg.Address, cfg.Port)
+
+	email.Setup(redisClient, cfg.SmtpServer, cfg.SmtpPort, cfg.SmtpUsername, cfg.SmtpPassword, fullAddress)
+
 	jwt.Setup("secretkey") // TODO needs to be read from secret env or file
 
-	fmt.Printf("Server is running on %s:%s\n", cfg.Address, cfg.Port)
+	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = setupHandlers(cfg, sugar, db)
+	err = setupHandlers(isHttps, redisClient, cfg.Address, cfg.Port, cfg.TlsCert, cfg.TlsKey, sugar, db)
 	if err != nil {
 		sugar.Fatal(err)
 	}

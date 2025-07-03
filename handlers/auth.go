@@ -1,14 +1,19 @@
 package handlers
 
 import (
+	"chatapp-backend/models"
+	"chatapp-backend/utils/email"
 	"chatapp-backend/utils/jwt"
 	"chatapp-backend/utils/snowflake"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -110,6 +115,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	username := fmt.Sprintf("%d", userID)    // temporary
+	displayName := fmt.Sprintf("%d", userID) // temporary
+
 	passwordBytes, err := bcrypt.GenerateFromPassword([]byte(registration.Password), 12)
 	if err != nil {
 		sugar.Error(err)
@@ -117,7 +125,45 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO users VALUES(?, ?, ?, ?, ?, ?)", userID, registration.Email, "TestUserName", "TestDisplayName", "", passwordBytes)
+	token, err := uuid.NewV7()
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	user := models.User{
+		ID:          userID,
+		Email:       registration.Email,
+		UserName:    username,
+		DisplayName: displayName,
+		Password:    passwordBytes,
+	}
+
+	bytes, err := msgpack.Marshal(user)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	b64 := base64.StdEncoding.EncodeToString(bytes)
+
+	err = redisClient.Set(redisCtx, fmt.Sprintf("registration:%s", token.String()), b64, 1*time.Hour).Err()
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	err = email.SendEmailConfirmation(registration.Email, username, token.String())
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	_, err = fmt.Fprintf(w, "confirm_email")
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
