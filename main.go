@@ -14,6 +14,7 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/redis/go-redis/v9"
 
 	"go.uber.org/zap"
 )
@@ -161,6 +162,14 @@ func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
 	return db, nil
 }
 
+func setupRedis() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+}
+
 func setupHandlers(config ConfigFile, sugar *zap.SugaredLogger, db *sql.DB) error {
 	handlers.Setup(sugar, db)
 
@@ -215,10 +224,9 @@ func main() {
 		sugar.Fatal(err)
 	}
 
-	err = hub.Setup(sugar)
-	if err != nil {
-		sugar.Fatal(err)
-	}
+	redisClient := setupRedis()
+
+	hub.Setup(sugar, redisClient)
 
 	err = snowflake.Setup(cfg.SnowflakeWorkerID)
 	if err != nil {

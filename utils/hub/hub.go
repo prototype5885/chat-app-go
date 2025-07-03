@@ -38,19 +38,13 @@ var clients = make(map[uint64]Client)
 var clientsMutex sync.Mutex
 
 var sugar *zap.SugaredLogger
+var redisClient *redis.Client
 
-var rdb *redis.Client
-var ctx = context.Background()
+var redisCtx = context.Background()
 
-func Setup(_sugar *zap.SugaredLogger) error {
+func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client) {
 	sugar = _sugar
-
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-	return nil
+	redisClient = _redisClient
 }
 
 func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -88,8 +82,8 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	pubsub := rdb.Subscribe(ctx)
+	clientCtx, cancel := context.WithCancel(context.Background())
+	pubsub := redisClient.Subscribe(clientCtx)
 
 	client := Client{
 		UserID:    userID,
@@ -97,7 +91,7 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		SessionID: sessionID,
 		PubSub:    pubsub,
 		MsgCh:     pubsub.Channel(),
-		Ctx:       ctx,
+		Ctx:       clientCtx,
 		Cancel:    cancel,
 	}
 
@@ -184,7 +178,7 @@ func PrepareMessage(messageType byte, messageToSend any) ([]byte, error) {
 
 func PublishRedis(messageBytes []byte, targetID uint64) error {
 	b64 := base64.StdEncoding.EncodeToString(messageBytes)
-	return rdb.Publish(ctx, fmt.Sprint(targetID), b64).Err()
+	return redisClient.Publish(redisCtx, fmt.Sprint(targetID), b64).Err()
 }
 
 func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
