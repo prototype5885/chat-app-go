@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/utils/email"
 	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/jwt"
+	"os/exec"
 
 	"chatapp-backend/utils/snowflake"
 	"database/sql"
@@ -217,6 +218,11 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+
+	_, err = exec.LookPath("ffmpeg")
+	if err != nil {
+		sugar.Fatal(err)
 	}
 
 	var cfg ConfigFile

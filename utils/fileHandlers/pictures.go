@@ -4,15 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
-	"image"
-	"image/jpeg"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
-
-	"github.com/disintegration/imaging"
 )
 
 func HandleAvatarPicture(r *http.Request) (string, error) {
@@ -24,70 +20,77 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 	defer picFormFile.Close()
 
 	// read bytes from received avatar pic
-	imgBytes, err := io.ReadAll(picFormFile)
+	inputBytes, err := io.ReadAll(picFormFile)
 	if err != nil {
 		return "", err
 	}
 
-	// decode
-	img, _, err := image.Decode(bytes.NewReader(imgBytes))
+	cmd := exec.Command(
+		"ffmpeg",
+		"-i", "pipe:0",
+		"-vf", "crop=min(iw\\,ih):min(iw\\,ih):(iw-min(iw\\,ih))/2:(ih-min(iw\\,ih))/2,scale=256:256",
+		"-vframes", "1",
+		"-c:v", "libwebp",
+		"-quality", "50",
+		"-preset", "default",
+		"-f", "webp",
+		"pipe:1",
+	)
+
+	// print ffmpeg result
+	// cmd.Stderr = os.Stderr
+
+	// this will send the input picture bytes to ffmpeg
+	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return "", err
 	}
 
-	// check if picture is too small
-	if img.Bounds().Dx() < 64 || img.Bounds().Dy() < 64 {
-		return "", errors.New("picture is too small, minimum 64x64")
-	}
+	// this will store the converted image result
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
 
-	// check if picture is either too wide or too tall
-	widthRatio := float64(img.Bounds().Dx()) / float64(img.Bounds().Dy())
-	heightRatio := float64(img.Bounds().Dy()) / float64(img.Bounds().Dx())
-	if widthRatio > 2 {
-		return "", errors.New("picture is too wide, must be less than 1:2 ratio")
-	} else if heightRatio > 2 {
-		return "", errors.New("picture is too tall, must be less than 1:2 ratio")
-	}
-
-	// if height is larger than width, crop height to same size as width,
-	// else if width is larger than height, crop width to the same size as height
-	if img.Bounds().Dy() > img.Bounds().Dx() {
-		img = imaging.CropCenter(img, img.Bounds().Dx(), img.Bounds().Dx())
-	} else if img.Bounds().Dx() > img.Bounds().Dy() {
-		img = imaging.CropCenter(img, img.Bounds().Dy(), img.Bounds().Dy())
-	}
-
-	// check if picture is in square dimension,
-	// this should never be wrong as it's been cropped previously
-	if img.Bounds().Dx() != img.Bounds().Dy() {
-		return "", errors.New("picture isn't square size")
-	}
-
-	// resize to 256px width if wider or taller
-	if img.Bounds().Dx() > 256 && img.Bounds().Dy() > 256 {
-		img = imaging.Resize(img, 256, 256, imaging.Lanczos)
-	}
-
-	// recompress into jpg
-	var buf bytes.Buffer
-	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 90})
+	// start the command
+	err = cmd.Start()
 	if err != nil {
 		return "", err
 	}
 
-	hash := sha256.Sum256(buf.Bytes())
-	fileName := hex.EncodeToString(hash[:]) + ".jpg"
+	// send the input bytes
+	_, err = stdin.Write(inputBytes)
+	stdin.Close()
+	if err != nil {
+		return "", err
+	}
+
+	// wait for it to finish
+	err = cmd.Wait()
+	if err != nil {
+		return "", err
+	}
+
+	// read the converted image bytes back
+	resultBytes := stdout.Bytes()
+
+	// use the hash for filename
+	hash := sha256.Sum256(resultBytes)
+
+	// construct the full path for saving
+	fileName := hex.EncodeToString(hash[:]) + ".webp"
 	folderPath := filepath.Join(".", "public", "avatars")
 	fullPath := filepath.Join(folderPath, fileName)
 
+	// make folders if they don't exist yet
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return "", nil
 	}
 
+	// check if avatar with same hash exists already
 	_, err = os.Stat(fullPath)
+	// if it doesn't exist, write it
 	if os.IsNotExist(err) {
-		err = os.WriteFile(fullPath, buf.Bytes(), 0644)
+		err = os.WriteFile(fullPath, resultBytes, 0644)
 		if err != nil {
 			return "", err
 		}
