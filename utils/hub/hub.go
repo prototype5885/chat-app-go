@@ -32,9 +32,10 @@ type Client struct {
 	MsgCh            <-chan *redis.Message
 	Ctx              context.Context
 	Cancel           context.CancelFunc
+	mutex            sync.Mutex
 }
 
-var clients = make(map[uint64]Client)
+var clients = make(map[uint64]*Client)
 var clientsMutex sync.Mutex
 
 var sugar *zap.SugaredLogger
@@ -85,7 +86,7 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	clientCtx, cancel := context.WithCancel(context.Background())
 	pubsub := redisClient.Subscribe(clientCtx)
 
-	client := Client{
+	client := &Client{
 		UserID:    userID,
 		Conn:      conn,
 		SessionID: sessionID,
@@ -142,7 +143,7 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	deleteClient(sessionID)
 }
 
-func setClient(sessionID uint64, client Client) {
+func setClient(sessionID uint64, client *Client) {
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
@@ -156,7 +157,7 @@ func deleteClient(sessionID uint64) {
 	delete(clients, sessionID)
 }
 
-func GetClient(sessionID uint64) (Client, bool) {
+func GetClient(sessionID uint64) (*Client, bool) {
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
@@ -187,16 +188,19 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 		return fmt.Errorf("session ID [%d] tried to subscribe to redis channel [%d] but the session isn't connected to hub", sessionID, key)
 	}
 
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+
 	var err error
 	switch channelType {
 	case "channel":
-		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentChannelID))
+		err = unsubscribeMessage(client, client.CurrentChannelID)
 		if err != nil {
 			return err
 		}
 		client.CurrentChannelID = key
 	case "server":
-		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentServerID))
+		err = unsubscribeMessage(client, client.CurrentServerID)
 		if err != nil {
 			return err
 		}
@@ -205,7 +209,6 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 		sugar.Fatal("Wrong channelType was provided to SubscribeMessage")
 	}
 
-	setClient(sessionID, client)
 	err = client.PubSub.Subscribe(client.Ctx, fmt.Sprint(key))
 	if err != nil {
 		return err
@@ -215,13 +218,6 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 
 }
 
-func UnsubscribeMessage(channel uint64, sessionID uint64) error {
-	client, exists := GetClient(sessionID)
-	if !exists {
-		return fmt.Errorf("session ID [%d] tried to unsubscribe from redis channel [%d] but the session isn't connected to hub", sessionID, channel)
-	}
-
-	client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(sessionID))
-
-	return nil
+func unsubscribeMessage(client *Client, redisChannel uint64) error {
+	return client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(redisChannel))
 }
