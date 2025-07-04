@@ -78,16 +78,16 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 	hash := sha256.Sum256(buf.Bytes())
 	fileName := hex.EncodeToString(hash[:]) + ".jpg"
 	folderPath := filepath.Join(".", "public", "avatars")
-	filePath := filepath.Join(folderPath, fileName)
+	fullPath := filepath.Join(folderPath, fileName)
 
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
 		return "", nil
 	}
 
-	_, err = os.Stat(filePath)
+	_, err = os.Stat(fullPath)
 	if os.IsNotExist(err) {
-		err = os.WriteFile(filePath, buf.Bytes(), 0644)
+		err = os.WriteFile(fullPath, buf.Bytes(), 0644)
 		if err != nil {
 			return "", err
 		}
