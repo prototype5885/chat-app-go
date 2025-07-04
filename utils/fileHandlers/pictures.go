@@ -9,7 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 )
+
+var mutex sync.Mutex
 
 func HandleAvatarPicture(r *http.Request) (string, error) {
 	// parse formfile
@@ -79,6 +82,9 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 	fileName := hex.EncodeToString(hash[:]) + ".webp"
 	folderPath := filepath.Join(".", "public", "avatars")
 	fullPath := filepath.Join(folderPath, fileName)
+
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	// make folders if they don't exist yet
 	err = os.MkdirAll(folderPath, os.ModePerm)
