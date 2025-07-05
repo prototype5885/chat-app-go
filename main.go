@@ -62,8 +62,7 @@ func readConfigFile() (ConfigFile, error) {
 	}
 	defer configFile.Close()
 
-	var bytes []byte
-	bytes, err = io.ReadAll(configFile)
+	bytes, err := io.ReadAll(configFile)
 	if err != nil {
 		return cfg, err
 	}
