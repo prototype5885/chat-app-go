@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/utils/email"
 	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/jwt"
+	"context"
 	"os/exec"
 
 	"chatapp-backend/utils/snowflake"
@@ -75,7 +76,7 @@ func readConfigFile() (ConfigFile, error) {
 }
 
 func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
-	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase)
+	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase)
 
 	db, err := sql.Open("mysql", connString)
 	if err != nil {
@@ -167,12 +168,19 @@ func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
 	return db, nil
 }
 
-func setupRedis() *redis.Client {
-	return redis.NewClient(&redis.Options{
+func setupRedis() (*redis.Client, error) {
+	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
+
+	err := rdb.Ping(context.Background()).Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return rdb, nil
 }
 
 func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port string, tlsCert string, tlsKey string, sugar *zap.SugaredLogger, db *sql.DB) error {
@@ -213,29 +221,37 @@ func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port
 }
 
 func main() {
+	fmt.Println("Setting up logger...")
 	sugar, err := setupLogger()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	fmt.Println("Looking for ffmpeg...")
 	_, err = exec.LookPath("ffmpeg")
 	if err != nil {
 		sugar.Fatal(err)
 	}
 
+	fmt.Println("Reading config file...")
 	var cfg ConfigFile
 	cfg, err = readConfigFile()
 	if err != nil {
 		sugar.Fatal(err)
 	}
 
+	fmt.Println("Connecting to database...")
 	db, err := setupDatabase(cfg)
 	if err != nil {
 		sugar.Fatal(err)
 	}
 
-	redisClient := setupRedis()
+	fmt.Println("Connecting to redis...")
+	redisClient, err := setupRedis()
+	if err != nil {
+		sugar.Fatal(err)
+	}
 
 	hub.Setup(sugar, redisClient)
 
