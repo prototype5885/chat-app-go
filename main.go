@@ -194,7 +194,7 @@ func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port
 
 	http.HandleFunc("GET /api/isLoggedIn", handlers.Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
 
-	http.HandleFunc("GET /api/user/{id}", handlers.Middleware(handlers.User))
+	http.HandleFunc("GET /api/user/fetch", handlers.Middleware(handlers.GetUserInfo))
 
 	http.HandleFunc("POST /api/server/create", handlers.Middleware(handlers.CreateServer))
 	http.HandleFunc("GET /api/server/fetch", handlers.Middleware(handlers.GetServerList))

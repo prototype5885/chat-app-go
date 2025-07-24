@@ -1,12 +1,12 @@
 package models
 
 type User struct {
-	ID          uint64 `msgpack:"id"`
-	Email       string `msgpack:"email"`
-	UserName    string `msgpack:"userName"`
+	ID          uint64 `msgpack:"id,omitempty"`
+	Email       string `msgpack:"email,omitempty"`
+	UserName    string `msgpack:"userName,omitempty"`
 	DisplayName string `msgpack:"displayName"`
 	Picture     string `msgpack:"picture"`
-	Password    []byte `msgpack:"password"`
+	Password    []byte `msgpack:"password,omitempty"`
 }
 
 type Server struct {
