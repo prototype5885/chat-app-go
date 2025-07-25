@@ -30,4 +30,5 @@ type Message struct {
 	Message     string `msgpack:"message"`
 	Attachments []byte `msgpack:"attachments"`
 	Edited      bool   `msgpack:"edited"`
+	User        User   `msgpack:"user"`
 }

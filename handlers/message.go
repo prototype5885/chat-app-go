@@ -50,6 +50,13 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = db.QueryRow("SELECT display_name, picture FROM users where id = ?", userID).Scan(&msg.User.DisplayName, &msg.User.Picture)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
 	messageBytes, err := hub.PrepareMessage(hub.MessageCreated, msg)
 	if err != nil {
 		sugar.Error(err)
@@ -74,7 +81,20 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 
 	// TODO check if user is member of channel
 
-	rows, err := db.Query("SELECT * FROM messages WHERE channel_id = ?", channelID)
+	query := `
+		SELECT
+			messages.*,
+			users.display_name,
+			users.picture
+		FROM
+			messages
+		JOIN
+			users ON messages.user_id = users.id
+		WHERE
+			messages.channel_ID = ?
+	`
+
+	rows, err := db.Query(query, channelID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -87,7 +107,7 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 	for rows.Next() {
 		var msg models.Message
 
-		err := rows.Scan(&msg.ID, &msg.ChannelID, &msg.UserID, &msg.Message, &msg.Attachments, &msg.Edited)
+		err := rows.Scan(&msg.ID, &msg.ChannelID, &msg.UserID, &msg.Message, &msg.Attachments, &msg.Edited, &msg.User.DisplayName, &msg.User.Picture)
 		if err != nil {
 			sugar.Error(err)
 			http.Error(w, "", http.StatusInternalServerError)
