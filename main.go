@@ -243,6 +243,8 @@ func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port
 	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
 	http.HandleFunc("POST /api/message/delete", handlers.Middleware(handlers.DeleteMessage))
 
+	http.HandleFunc("GET /api/members/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMemberList)))
+
 	http.HandleFunc("GET /api/email/confirm", handlers.ConfirmEmail)
 
 	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
