@@ -38,3 +38,18 @@ func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
 
 	msgpack.NewEncoder(w).Encode(userClient)
 }
+
+func UpdateUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
+	displayName := r.URL.Query().Get("displayName")
+	if displayName == "" {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	} else {
+		_, err := db.Exec("UPDATE users SET display_name = ? WHERE id = ?", displayName, userID)
+		if err != nil {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+}
