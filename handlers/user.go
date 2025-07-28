@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/models"
+	"chatapp-backend/utils/fileHandlers"
 	"net/http"
 	"strconv"
 
@@ -40,16 +41,28 @@ func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
-	displayName := r.URL.Query().Get("displayName")
-	if displayName == "" {
-		http.Error(w, "", http.StatusBadRequest)
-		return
-	} else {
-		_, err := db.Exec("UPDATE users SET display_name = ? WHERE id = ?", displayName, userID)
-		if err != nil {
-			sugar.Error(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+	{
+		displayName := r.URL.Query().Get("displayName")
+		if displayName != "" {
+			_, err := db.Exec("UPDATE users SET display_name = ? WHERE id = ?", displayName, userID)
+			if err != nil {
+				sugar.Error(err)
+				http.Error(w, "", http.StatusInternalServerError)
+			}
 		}
 	}
+	{
+		pictureName, err := fileHandlers.HandleAvatarPicture(r)
+		if err != nil && err != http.ErrMissingFile {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusBadRequest)
+		} else if err != http.ErrMissingFile {
+			_, err := db.Exec("UPDATE users SET picture = ? WHERE id = ?", pictureName, userID)
+			if err != nil {
+				sugar.Error(err)
+				http.Error(w, "", http.StatusInternalServerError)
+			}
+		}
+	}
+
 }
