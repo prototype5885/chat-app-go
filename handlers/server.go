@@ -3,6 +3,7 @@ package handlers
 import (
 	"chatapp-backend/models"
 	"chatapp-backend/utils/fileHandlers"
+	"chatapp-backend/utils/hub"
 	"chatapp-backend/utils/snowflake"
 	"net/http"
 	"strconv"
@@ -55,7 +56,7 @@ func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	msgpack.NewEncoder(w).Encode(server)
 }
 
-func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
+func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query("SELECT s.* FROM servers s JOIN server_members m ON s.id = m.server_id WHERE m.user_id = ?", userID)
 	if err != nil {
 		sugar.Error(err)
@@ -85,6 +86,15 @@ func GetServerList(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, server := range servers {
+		err = hub.SubscribeRedis(server.ID, "server_list", sessionID)
+		if err != nil {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	msgpack.NewEncoder(w).Encode(servers)
 }
 
@@ -102,6 +112,20 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = db.Exec("DELETE FROM servers WHERE id = ? AND owner_id = ?", serverID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	messageBytes, err := hub.PrepareMessage(hub.ServerDeleted, serverID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	err = hub.PublishRedis(messageBytes, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

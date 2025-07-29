@@ -205,6 +205,8 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 			return err
 		}
 		client.CurrentServerID = key
+	case "server_list":
+		// no need to unsubscribe anything as it's a list of multiple servers constantly in view
 	default:
 		sugar.Fatal("Wrong channelType was provided to SubscribeMessage")
 	}

@@ -233,7 +233,7 @@ func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port
 	http.HandleFunc("POST /api/user/update", handlers.Middleware(handlers.UpdateUserInfo))
 
 	http.HandleFunc("POST /api/server/create", handlers.Middleware(handlers.CreateServer))
-	http.HandleFunc("GET /api/server/fetch", handlers.Middleware(handlers.GetServerList))
+	http.HandleFunc("GET /api/server/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetServerList)))
 	http.HandleFunc("POST /api/server/delete", handlers.Middleware(handlers.DeleteServer))
 	http.HandleFunc("POST /api/server/rename", handlers.Middleware(handlers.RenameServer))
 
