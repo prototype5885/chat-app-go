@@ -31,7 +31,6 @@ type Client struct {
 	PubSub           *redis.PubSub
 	MsgCh            <-chan *redis.Message
 	Ctx              context.Context
-	Cancel           context.CancelFunc
 	mutex            sync.Mutex
 }
 
@@ -84,7 +83,11 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	clientCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	pubsub := redisClient.Subscribe(clientCtx)
+	defer pubsub.Unsubscribe(clientCtx)
+	defer pubsub.Close()
 
 	client := &Client{
 		UserID:    userID,
@@ -93,12 +96,9 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		PubSub:    pubsub,
 		MsgCh:     pubsub.Channel(),
 		Ctx:       clientCtx,
-		Cancel:    cancel,
 	}
 
 	setClient(sessionID, client)
-
-	sugar.Debugf("Added user ID [%d] to clients as session ID [%d]", userID, sessionID)
 
 	// listening to redis pub/sub messages to send them to client
 	go func() {
@@ -133,17 +133,11 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	client.Cancel() // cancel ctx
-	err = client.PubSub.Close()
-	if err != nil {
-		sugar.Error(err)
-	}
-
-	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
 	deleteClient(sessionID)
 }
 
 func setClient(sessionID uint64, client *Client) {
+	sugar.Debugf("Adding user ID [%d] to clients as session ID [%d]", client.UserID, sessionID)
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
@@ -151,6 +145,7 @@ func setClient(sessionID uint64, client *Client) {
 }
 
 func deleteClient(sessionID uint64) {
+	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
