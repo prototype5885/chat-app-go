@@ -3,6 +3,7 @@
     "Port": "5083",
     "TlsCert": "example.crt", // uses http if empty
     "TlsKey": "example.key", // uses http if empty
+    "JwtSecret": "secret any text",
     "SnowflakeWorkerID": 0,
     "DbUser": "root",
     "DbPassword": "password",

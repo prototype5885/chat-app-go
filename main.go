@@ -27,6 +27,7 @@ type ConfigFile struct {
 	Port              string
 	TlsCert           string
 	TlsKey            string
+	JwtSecret         string
 	SnowflakeWorkerID uint64
 	DbUser            string
 	DbPassword        string
@@ -311,7 +312,7 @@ func main() {
 
 	email.Setup(redisClient, cfg.SmtpServer, cfg.SmtpPort, cfg.SmtpUsername, cfg.SmtpPassword, fullAddress)
 
-	jwt.Setup("secretkey") // TODO needs to be read from secret env or file
+	jwt.Setup(cfg.JwtSecret)
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
