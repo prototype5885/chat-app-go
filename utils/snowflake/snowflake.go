@@ -54,7 +54,7 @@ func Generate() (uint64, error) {
 	if timestamp == lastTimestamp {
 		lastIncrement += 1
 		if lastIncrement > maxIncrementValue {
-			return 0, fmt.Errorf("increment overflow")
+			return 0, fmt.Errorf("increment overflow after increment reached %d", lastIncrement)
 		}
 	} else {
 		lastIncrement = 0
