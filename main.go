@@ -13,7 +13,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -219,46 +218,6 @@ func setupRedis() (*redis.Client, error) {
 	return rdb, nil
 }
 
-func setupHandlers(isHttps bool, redisClient *redis.Client, address string, port string, tlsCert string, tlsKey string, sugar *zap.SugaredLogger, db *sql.DB) error {
-	handlers.Setup(sugar, redisClient, db)
-
-	http.HandleFunc("GET /api/test", handlers.Test)
-
-	http.HandleFunc("POST /api/auth/login", handlers.Login)
-	http.HandleFunc("POST /api/auth/register", handlers.Register)
-	http.HandleFunc("GET /api/auth/newSession", handlers.Middleware(handlers.NewSession))
-
-	http.HandleFunc("GET /api/isLoggedIn", handlers.Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
-
-	http.HandleFunc("GET /api/user/fetch", handlers.Middleware(handlers.GetUserInfo))
-	http.HandleFunc("POST /api/user/update", handlers.Middleware(handlers.UpdateUserInfo))
-
-	http.HandleFunc("POST /api/server/create", handlers.Middleware(handlers.CreateServer))
-	http.HandleFunc("GET /api/server/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetServerList)))
-	http.HandleFunc("POST /api/server/delete", handlers.Middleware(handlers.DeleteServer))
-	http.HandleFunc("POST /api/server/rename", handlers.Middleware(handlers.RenameServer))
-
-	http.HandleFunc("POST /api/channel/create", handlers.Middleware(handlers.CreateChannel))
-	http.HandleFunc("GET /api/channel/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetChannelList)))
-
-	http.HandleFunc("POST /api/message/create", handlers.Middleware(handlers.CreateMessage))
-	http.HandleFunc("GET /api/message/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMessageList)))
-	http.HandleFunc("POST /api/message/delete", handlers.Middleware(handlers.DeleteMessage))
-
-	http.HandleFunc("GET /api/members/fetch", handlers.Middleware(handlers.SessionVerifier(handlers.GetMemberList)))
-
-	http.HandleFunc("GET /api/email/confirm", handlers.ConfirmEmail)
-
-	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-
-	http.HandleFunc("/ws", handlers.Middleware(hub.HandleClient))
-
-	if isHttps {
-		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", address, port), tlsCert, tlsKey, nil)
-	}
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", address, port), nil)
-}
-
 func main() {
 	fmt.Println("Setting up logger...")
 	sugar, err := setupLogger()
@@ -316,9 +275,8 @@ func main() {
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = setupHandlers(isHttps, redisClient, cfg.Address, cfg.Port, cfg.TlsCert, cfg.TlsKey, sugar, db)
+	err = handlers.Setup(isHttps, redisClient, cfg.Address, cfg.Port, cfg.TlsCert, cfg.TlsKey, sugar, db)
 	if err != nil {
 		sugar.Fatal(err)
 	}
-
 }
