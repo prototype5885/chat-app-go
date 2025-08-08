@@ -1,14 +1,14 @@
 package main
 
 import (
-	"chatapp-backend/handlers"
-	"chatapp-backend/utils/email"
-	"chatapp-backend/utils/hub"
-	"chatapp-backend/utils/jwt"
+	"chatapp-backend/internal/email"
+	"chatapp-backend/internal/handlers"
+	"chatapp-backend/internal/hub"
+	"chatapp-backend/internal/jwt"
 	"context"
 	"os/exec"
 
-	"chatapp-backend/utils/snowflake"
+	"chatapp-backend/internal/snowflake"
 	"database/sql"
 	"encoding/json"
 	"fmt"

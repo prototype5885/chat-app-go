@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"chatapp-backend/models"
-	"chatapp-backend/utils/fileHandlers"
-	"chatapp-backend/utils/hub"
-	"chatapp-backend/utils/snowflake"
+	"chatapp-backend/internal/fileHandlers"
+	"chatapp-backend/internal/hub"
+	"chatapp-backend/internal/models"
+	"chatapp-backend/internal/snowflake"
 	"net/http"
 	"strconv"
 

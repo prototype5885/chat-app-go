@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"chatapp-backend/models"
+	"chatapp-backend/internal/models"
 	"net/http"
 	"strconv"
 

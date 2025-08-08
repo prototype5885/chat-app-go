@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"chatapp-backend/models"
-	"chatapp-backend/utils/email"
-	"chatapp-backend/utils/jwt"
-	"chatapp-backend/utils/snowflake"
+	"chatapp-backend/internal/email"
+	"chatapp-backend/internal/jwt"
+	"chatapp-backend/internal/models"
+	"chatapp-backend/internal/snowflake"
 	"database/sql"
 	"encoding/base64"
 	"errors"

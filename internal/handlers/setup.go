@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"chatapp-backend/utils/hub"
+	"chatapp-backend/internal/hub"
 	"context"
 	"database/sql"
 	"fmt"

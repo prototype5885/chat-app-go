@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"chatapp-backend/models"
-	"chatapp-backend/utils/fileHandlers"
+	"chatapp-backend/internal/fileHandlers"
+	"chatapp-backend/internal/models"
 	"net/http"
 	"strconv"
 

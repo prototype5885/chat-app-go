@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"chatapp-backend/utils/hub"
-	"chatapp-backend/utils/jwt"
+	"chatapp-backend/internal/hub"
+	"chatapp-backend/internal/jwt"
 	"errors"
 	"net/http"
 	"strconv"
