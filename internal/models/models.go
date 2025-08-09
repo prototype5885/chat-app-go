@@ -32,3 +32,21 @@ type Message struct {
 	Edited      bool   `msgpack:"edited"`
 	User        User   `msgpack:"user"`
 }
+
+type ConfigFile struct {
+	Address           string
+	Port              string
+	TlsCert           string
+	TlsKey            string
+	JwtSecret         string
+	SnowflakeWorkerID uint64
+	DbUser            string
+	DbPassword        string
+	DbAddress         string
+	DbPort            string
+	DbDatabase        string
+	SmtpUsername      string
+	SmtpPassword      string
+	SmtpServer        string
+	SmtpPort          int
+}

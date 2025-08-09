@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/internal/hub"
+	"chatapp-backend/internal/models"
 	"context"
 	"database/sql"
 	"fmt"
@@ -19,7 +20,7 @@ var db *sql.DB
 
 var validate *validator.Validate
 
-func Setup(isHttps bool, _redisClient *redis.Client, address string, port string, tlsCert string, tlsKey string, _sugar *zap.SugaredLogger, _db *sql.DB) error {
+func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
 	sugar = _sugar
 	redisClient = _redisClient
 	db = _db
@@ -58,7 +59,7 @@ func Setup(isHttps bool, _redisClient *redis.Client, address string, port string
 	http.HandleFunc("/ws", Middleware(hub.HandleClient))
 
 	if isHttps {
-		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", address, port), tlsCert, tlsKey, nil)
+		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), cfg.TlsCert, cfg.TlsKey, nil)
 	}
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", address, port), nil)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), nil)
 }

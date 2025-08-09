@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/internal/handlers"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/jwt"
+	"chatapp-backend/internal/models"
 	"context"
 	"os/exec"
 
@@ -21,24 +22,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type ConfigFile struct {
-	Address           string
-	Port              string
-	TlsCert           string
-	TlsKey            string
-	JwtSecret         string
-	SnowflakeWorkerID uint64
-	DbUser            string
-	DbPassword        string
-	DbAddress         string
-	DbPort            string
-	DbDatabase        string
-	SmtpUsername      string
-	SmtpPassword      string
-	SmtpServer        string
-	SmtpPort          int
-}
-
 func setupLogger() (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{"app.log", "stdout"}
@@ -54,28 +37,28 @@ func setupLogger() (*zap.SugaredLogger, error) {
 	return sugar, nil
 }
 
-func readConfigFile() (ConfigFile, error) {
-	var cfg ConfigFile
+func readConfigFile() (*models.ConfigFile, error) {
+	var cfg models.ConfigFile
 
 	configFile, err := os.Open("config.json")
 	if err != nil {
-		return cfg, err
+		return &cfg, err
 	}
 	defer configFile.Close()
 
 	bytes, err := io.ReadAll(configFile)
 	if err != nil {
-		return cfg, err
+		return &cfg, err
 	}
 
 	err = json.Unmarshal(bytes, &cfg)
 	if err != nil {
-		return cfg, err
+		return &cfg, err
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
-func setupDatabase(cfg ConfigFile) (*sql.DB, error) {
+func setupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase)
 
 	db, err := sql.Open("mysql", connString)
@@ -233,8 +216,7 @@ func main() {
 	}
 
 	fmt.Println("Reading config file...")
-	var cfg ConfigFile
-	cfg, err = readConfigFile()
+	cfg, err := readConfigFile()
 	if err != nil {
 		sugar.Fatal(err)
 	}
@@ -269,13 +251,13 @@ func main() {
 
 	fullAddress := fmt.Sprintf("%s://%s:%s", httpProtocol, cfg.Address, cfg.Port)
 
-	email.Setup(redisClient, cfg.SmtpServer, cfg.SmtpPort, cfg.SmtpUsername, cfg.SmtpPassword, fullAddress)
+	email.Setup(redisClient, cfg, fullAddress)
 
 	jwt.Setup(cfg.JwtSecret)
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = handlers.Setup(isHttps, redisClient, cfg.Address, cfg.Port, cfg.TlsCert, cfg.TlsKey, sugar, db)
+	err = handlers.Setup(isHttps, redisClient, cfg, sugar, db)
 	if err != nil {
 		sugar.Fatal(err)
 	}

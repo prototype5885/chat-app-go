@@ -1,6 +1,7 @@
 package email
 
 import (
+	"chatapp-backend/internal/models"
 	"fmt"
 	"net/smtp"
 	"net/url"
@@ -17,12 +18,12 @@ var username string
 var password string
 var fullServerAddress string
 
-func Setup(_redisClient *redis.Client, _server string, _port int, _username string, _password string, _fullServerAddress string) {
+func Setup(_redisClient *redis.Client, cfg *models.ConfigFile, _fullServerAddress string) {
 	// redisClient = _redisClient
-	server = _server
-	address = fmt.Sprintf("%s:%d", _server, _port)
-	username = _username
-	password = _password
+	server = cfg.SmtpServer
+	address = fmt.Sprintf("%s:%d", cfg.SmtpServer, cfg.SmtpPort)
+	username = cfg.SmtpUsername
+	password = cfg.SmtpPassword
 	fullServerAddress = _fullServerAddress
 }
 
