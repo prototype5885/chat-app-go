@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
@@ -27,39 +28,54 @@ func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _su
 
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
-	http.HandleFunc("GET /api/test", Test)
+	mux := http.NewServeMux()
 
-	http.HandleFunc("POST /api/auth/login", Login)
-	http.HandleFunc("POST /api/auth/register", Register)
-	http.HandleFunc("GET /api/auth/newSession", Middleware(NewSession))
+	mux.HandleFunc("GET /api/test", Test)
 
-	http.HandleFunc("GET /api/isLoggedIn", Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("POST /api/auth/login", Login)
+	mux.HandleFunc("POST /api/auth/register", Register)
+	mux.HandleFunc("GET /api/auth/newSession", Middleware(NewSession))
 
-	http.HandleFunc("GET /api/user/fetch", Middleware(GetUserInfo))
-	http.HandleFunc("POST /api/user/update", Middleware(UpdateUserInfo))
+	mux.HandleFunc("GET /api/isLoggedIn", Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
 
-	http.HandleFunc("POST /api/server/create", Middleware(CreateServer))
-	http.HandleFunc("GET /api/server/fetch", Middleware(SessionVerifier(GetServerList)))
-	http.HandleFunc("POST /api/server/delete", Middleware(DeleteServer))
-	http.HandleFunc("POST /api/server/rename", Middleware(RenameServer))
+	mux.HandleFunc("GET /api/user/fetch", Middleware(GetUserInfo))
+	mux.HandleFunc("POST /api/user/update", Middleware(UpdateUserInfo))
 
-	http.HandleFunc("POST /api/channel/create", Middleware(CreateChannel))
-	http.HandleFunc("GET /api/channel/fetch", Middleware(SessionVerifier(GetChannelList)))
+	mux.HandleFunc("POST /api/server/create", Middleware(CreateServer))
+	mux.HandleFunc("GET /api/server/fetch", Middleware(SessionVerifier(GetServerList)))
+	mux.HandleFunc("POST /api/server/delete", Middleware(DeleteServer))
+	mux.HandleFunc("POST /api/server/rename", Middleware(RenameServer))
 
-	http.HandleFunc("POST /api/message/create", Middleware(CreateMessage))
-	http.HandleFunc("GET /api/message/fetch", Middleware(SessionVerifier(GetMessageList)))
-	http.HandleFunc("POST /api/message/delete", Middleware(DeleteMessage))
+	mux.HandleFunc("POST /api/channel/create", Middleware(CreateChannel))
+	mux.HandleFunc("GET /api/channel/fetch", Middleware(SessionVerifier(GetChannelList)))
 
-	http.HandleFunc("GET /api/members/fetch", Middleware(SessionVerifier(GetMemberList)))
+	mux.HandleFunc("POST /api/message/create", Middleware(CreateMessage))
+	mux.HandleFunc("GET /api/message/fetch", Middleware(SessionVerifier(GetMessageList)))
+	mux.HandleFunc("POST /api/message/delete", Middleware(DeleteMessage))
 
-	http.HandleFunc("GET /api/email/confirm", ConfirmEmail)
+	mux.HandleFunc("GET /api/members/fetch", Middleware(SessionVerifier(GetMemberList)))
 
-	http.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+	mux.HandleFunc("GET /api/email/confirm", ConfirmEmail)
 
-	http.HandleFunc("/ws", Middleware(hub.HandleClient))
+	mux.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+
+	mux.HandleFunc("/ws", Middleware(hub.HandleClient))
+
+	var handler http.Handler
+	if cfg.PrintHttpRequests {
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			mux.ServeHTTP(w, r)
+			duration := time.Since(start)
+
+			fmt.Printf("[%s] %s %s from %s - Duration: %v\n", start.Format(time.RFC1123), r.Method, r.URL, r.RemoteAddr, duration)
+		})
+	} else {
+		handler = mux
+	}
 
 	if isHttps {
-		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), cfg.TlsCert, cfg.TlsKey, nil)
+		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), cfg.TlsCert, cfg.TlsKey, handler)
 	}
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), nil)
+	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), handler)
 }

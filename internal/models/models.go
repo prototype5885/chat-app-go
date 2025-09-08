@@ -38,6 +38,7 @@ type ConfigFile struct {
 	Port              string
 	TlsCert           string
 	TlsKey            string
+	PrintHttpRequests bool
 	JwtSecret         string
 	SnowflakeWorkerID uint64
 	DbUser            string
