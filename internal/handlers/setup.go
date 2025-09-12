@@ -74,8 +74,10 @@ func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _su
 		handler = mux
 	}
 
+	address := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
+
 	if isHttps {
-		return http.ListenAndServeTLS(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), cfg.TlsCert, cfg.TlsKey, handler)
+		return http.ListenAndServeTLS(address, cfg.TlsCert, cfg.TlsKey, handler)
 	}
-	return http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Address, cfg.Port), handler)
+	return http.ListenAndServe(address, handler)
 }
