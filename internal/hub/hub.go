@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
-	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 )
 
@@ -161,7 +161,7 @@ func GetClient(sessionID uint64) (*Client, bool) {
 }
 
 func PrepareMessage(messageType byte, messageToSend any) ([]byte, error) {
-	jsonBytes, err := msgpack.Marshal(messageToSend)
+	jsonBytes, err := json.Marshal(messageToSend)
 	if err != nil {
 		return nil, err
 	}

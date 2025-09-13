@@ -1,36 +1,36 @@
 package models
 
 type User struct {
-	ID          uint64 `msgpack:"id,omitempty"`
-	Email       string `msgpack:"email,omitempty"`
-	UserName    string `msgpack:"userName,omitempty"`
-	DisplayName string `msgpack:"displayName"`
-	Picture     string `msgpack:"picture"`
-	Password    []byte `msgpack:"password,omitempty"`
+	ID          uint64 `json:"id,string,omitempty"`
+	Email       string `json:"email,omitempty"`
+	UserName    string `json:"userName,omitempty"`
+	DisplayName string `json:"displayName"`
+	Picture     string `json:"picture"`
+	Password    []byte `json:"password,omitempty"`
 }
 
 type Server struct {
-	ID      uint64 `msgpack:"id"`
-	OwnerID uint64 `msgpack:"ownerID"`
-	Name    string `msgpack:"name"`
-	Picture string `msgpack:"picture"`
-	Banner  string `msgpack:"banner"`
+	ID      uint64 `json:"id,string"`
+	OwnerID uint64 `json:"ownerID,string"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Banner  string `json:"banner"`
 }
 
 type Channel struct {
-	ID       uint64 `msgpack:"id"`
-	ServerID uint64 `msgpack:"serverID"`
-	Name     string `msgpack:"name"`
+	ID       uint64 `json:"id,string"`
+	ServerID uint64 `json:"serverID,string"`
+	Name     string `json:"name"`
 }
 
 type Message struct {
-	ID          uint64 `msgpack:"id"`
-	ChannelID   uint64 `msgpack:"channelID"`
-	UserID      uint64 `msgpack:"userID"`
-	Message     string `msgpack:"message"`
-	Attachments []byte `msgpack:"attachments"`
-	Edited      bool   `msgpack:"edited"`
-	User        User   `msgpack:"user"`
+	ID          uint64 `json:"id,string"`
+	ChannelID   uint64 `json:"channelID,string"`
+	UserID      uint64 `json:"userID,string"`
+	Message     string `json:"message"`
+	Attachments []byte `json:"attachments"`
+	Edited      bool   `json:"edited"`
+	User        User   `json:"user"`
 }
 
 type ConfigFile struct {

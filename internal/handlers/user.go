@@ -3,10 +3,9 @@ package handlers
 import (
 	"chatapp-backend/internal/fileHandlers"
 	"chatapp-backend/internal/models"
+	"encoding/json"
 	"net/http"
 	"strconv"
-
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -37,7 +36,7 @@ func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	msgpack.NewEncoder(w).Encode(userClient)
+	json.NewEncoder(w).Encode(userClient)
 }
 
 func UpdateUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {

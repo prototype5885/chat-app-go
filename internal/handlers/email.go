@@ -3,12 +3,12 @@ package handlers
 import (
 	"chatapp-backend/internal/models"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 func ConfirmEmail(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var u models.User
-	err = msgpack.Unmarshal(bytes, &u)
+	err = json.Unmarshal(bytes, &u)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "Error", http.StatusInternalServerError)

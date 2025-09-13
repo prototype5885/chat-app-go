@@ -7,6 +7,7 @@ import (
 	"chatapp-backend/internal/snowflake"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,18 +15,17 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	type Login struct {
-		Email    string `msgpack:"email"`
-		Password string `msgpack:"password"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	var login Login
-	err := msgpack.NewDecoder(r.Body).Decode(&login)
+	err := json.NewDecoder(r.Body).Decode(&login)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusBadRequest)
@@ -71,13 +71,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	var registerErrors = make(map[string]string)
 
 	type Registration struct {
-		Email           string `msgpack:"email" validate:"email"`
-		Password        string `msgpack:"password" validate:"eqfield=ConfirmPassword,min=6"`
-		ConfirmPassword string `msgpack:"confirmPassword"`
+		Email           string `json:"email" validate:"email"`
+		Password        string `json:"password" validate:"eqfield=ConfirmPassword,min=6"`
+		ConfirmPassword string `json:"confirmPassword"`
 	}
 
 	var registration Registration
-	err := msgpack.NewDecoder(r.Body).Decode(&registration)
+	err := json.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
 		sugar.Debug(err)
 		http.Error(w, "", http.StatusBadRequest)
@@ -99,7 +99,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 		// sends back 400 with the form field errors
 		w.WriteHeader(http.StatusBadRequest)
-		encodeErr := msgpack.NewEncoder(w).Encode(registerErrors)
+		encodeErr := json.NewEncoder(w).Encode(registerErrors)
 		if encodeErr != nil {
 			sugar.Error(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -140,7 +140,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		Password:    passwordBytes,
 	}
 
-	bytes, err := msgpack.Marshal(user)
+	bytes, err := json.Marshal(user)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

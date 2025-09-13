@@ -2,10 +2,9 @@ package handlers
 
 import (
 	"chatapp-backend/internal/models"
+	"encoding/json"
 	"net/http"
 	"strconv"
-
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 func GetMemberList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
@@ -57,5 +56,5 @@ func GetMemberList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 		return
 	}
 
-	msgpack.NewEncoder(w).Encode(users)
+	json.NewEncoder(w).Encode(users)
 }

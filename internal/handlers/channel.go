@@ -4,10 +4,9 @@ import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
+	"encoding/json"
 	"net/http"
 	"strconv"
-
-	"github.com/vmihailenco/msgpack/v5"
 )
 
 func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -114,5 +113,5 @@ func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	msgpack.NewEncoder(w).Encode(channels)
+	json.NewEncoder(w).Encode(channels)
 }
