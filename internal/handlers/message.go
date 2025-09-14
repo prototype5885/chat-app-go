@@ -129,7 +129,12 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	json.NewEncoder(w).Encode(messages)
+	err = json.NewEncoder(w).Encode(messages)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {

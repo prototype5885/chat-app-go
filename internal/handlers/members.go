@@ -56,5 +56,10 @@ func GetMemberList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 		return
 	}
 
-	json.NewEncoder(w).Encode(users)
+	err = json.NewEncoder(w).Encode(users)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }

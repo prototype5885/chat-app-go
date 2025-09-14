@@ -52,7 +52,12 @@ func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(server)
+	err = json.NewEncoder(w).Encode(server)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
@@ -94,7 +99,12 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 		}
 	}
 
-	json.NewEncoder(w).Encode(servers)
+	err = json.NewEncoder(w).Encode(servers)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {

@@ -36,7 +36,12 @@ func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(userClient)
+	err = json.NewEncoder(w).Encode(userClient)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
 
 func UpdateUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {

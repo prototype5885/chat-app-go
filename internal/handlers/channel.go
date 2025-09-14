@@ -113,5 +113,10 @@ func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	json.NewEncoder(w).Encode(channels)
+	err = json.NewEncoder(w).Encode(channels)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 }
