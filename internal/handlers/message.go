@@ -12,8 +12,8 @@ import (
 func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	type AddMessageRequest struct {
 		Message   string `json:"message"`
-		ChannelID uint64 `json:"channelID"`
-		ReplyID   uint64 `json:"replyID"`
+		ChannelID uint64 `json:"channelID,string"`
+		ReplyID   uint64 `json:"replyID,string"`
 	}
 
 	var messageRequest AddMessageRequest
