@@ -138,15 +138,9 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 }
 
 func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
-	paramMessageID := r.URL.Query().Get("messageID")
-	if paramMessageID == "" {
-		http.Error(w, "No server ID was specified for deletion", http.StatusBadRequest)
-		return
-	}
-
-	messageID, err := strconv.ParseUint(paramMessageID, 10, 64)
-	if err != nil {
-		http.Error(w, "Server ID specified for deletion is not a number", http.StatusBadRequest)
+	messageID, err := strconv.ParseUint(r.URL.Query().Get("messageID"), 10, 64)
+	if err != nil || messageID == 0 {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
 		return
 	}
 

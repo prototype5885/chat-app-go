@@ -108,15 +108,9 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 }
 
 func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
-	paramServerID := r.URL.Query().Get("serverID")
-	if paramServerID == "" {
-		http.Error(w, "No server ID was specified for deletion", http.StatusBadRequest)
-		return
-	}
-
-	serverID, err := strconv.ParseUint(paramServerID, 10, 64)
-	if err != nil {
-		http.Error(w, "Server ID specified for deletion is not a number", http.StatusBadRequest)
+	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
+	if err != nil || serverID == 0 {
+		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
 	}
 
