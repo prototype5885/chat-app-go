@@ -35,8 +35,7 @@ func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _su
 	mux.HandleFunc("POST /api/auth/login", Login)
 	mux.HandleFunc("POST /api/auth/register", Register)
 	mux.HandleFunc("GET /api/auth/newSession", Middleware(NewSession))
-
-	mux.HandleFunc("GET /api/isLoggedIn", Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("GET /api/auth/isLoggedIn", Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
 
 	mux.HandleFunc("GET /api/user/fetch", Middleware(GetUserInfo))
 	mux.HandleFunc("POST /api/user/update", Middleware(UpdateUserInfo))
