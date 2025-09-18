@@ -4,9 +4,12 @@ import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/jwt"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Request)) func(uint64, http.ResponseWriter, *http.Request) {
@@ -69,16 +72,42 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 			return
 		}
 
-		// check if user exists in database
-		var exists bool
-		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&exists)
-		if err != nil {
-			sugar.Error(err)
+		// check if user exists
+		cacheKey := fmt.Sprintf("user_exists:%d", userToken.UserID)
+
+		var userFound bool = false
+
+		_, redisGetErr := redisClient.Get(redisCtx, cacheKey).Result()
+		if redisGetErr == redis.Nil { // user isn't cached in redis
+			dbErr := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&userFound)
+			if dbErr != nil {
+				sugar.Error(dbErr)
+				http.Error(w, "", http.StatusInternalServerError)
+				return
+			}
+			if userFound {
+				_, redisSetErr := redisClient.Set(redisCtx, cacheKey, "y", 15*time.Minute).Result()
+				if redisSetErr != nil {
+					sugar.Error(redisSetErr)
+					http.Error(w, "", http.StatusInternalServerError)
+					return
+				}
+				sugar.Debugf("User ID %d was found in database and was cached in redis\n", userToken.UserID)
+			} else {
+				sugar.Error("User ID %d was not found in database\n", userToken.UserID)
+			}
+		} else if redisGetErr != nil { // redis error
+			sugar.Error(redisGetErr)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
+		} else { // user was found in redis
+			sugar.Debugf("User ID %d was found cached in redis\n", userToken.UserID)
+			userFound = true
 		}
 
-		if !exists {
+		// delete JWT token from client, this should run when a user deleted their account,
+		// but kept the JWT token for any reason
+		if !userFound {
 			deleteJwtCookie := &http.Cookie{
 				Name:     "JWT",
 				Value:    "",
