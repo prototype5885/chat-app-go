@@ -3,5 +3,9 @@ package handlers
 import "net/http"
 
 func Test(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello World"))
+	_, err := w.Write([]byte("Hello World"))
+	if err != nil {
+		sugar.Error(err)
+		return
+	}
 }

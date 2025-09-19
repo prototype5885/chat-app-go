@@ -67,9 +67,16 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var servers []models.Server = []models.Server{}
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
+
+	servers := []models.Server{}
 
 	for rows.Next() {
 		var server models.Server

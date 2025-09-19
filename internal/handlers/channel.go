@@ -83,9 +83,15 @@ func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
 
-	var channels []models.Channel = []models.Channel{}
+	channels := []models.Channel{}
 
 	for rows.Next() {
 		var channel models.Channel

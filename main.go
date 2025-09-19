@@ -32,7 +32,13 @@ func setupLogger() (*zap.SugaredLogger, error) {
 	}
 
 	sugar := logger.Sugar()
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}()
 
 	return sugar, nil
 }
@@ -44,7 +50,12 @@ func readConfigFile() (*models.ConfigFile, error) {
 	if err != nil {
 		return &cfg, err
 	}
-	defer configFile.Close()
+	defer func() {
+		err := configFile.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	bytes, err := io.ReadAll(configFile)
 	if err != nil {

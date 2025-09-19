@@ -35,7 +35,14 @@ func GetMemberList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
+
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
 
 	var users []models.User
 	for rows.Next() {

@@ -99,9 +99,16 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	defer rows.Close()
 
-	var messages []models.Message = []models.Message{}
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
+
+	messages := []models.Message{}
 
 	for rows.Next() {
 		var msg models.Message

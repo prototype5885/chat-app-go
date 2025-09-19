@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -80,14 +81,33 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+
+	defer func() {
+		err := conn.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
 
 	clientCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	pubsub := redisClient.Subscribe(clientCtx)
-	defer pubsub.Unsubscribe(clientCtx)
-	defer pubsub.Close()
+	defer func() {
+		err := pubsub.Unsubscribe(clientCtx)
+		if err != nil && !strings.EqualFold(err.Error(), "redis: client is closed") {
+			sugar.Error(err)
+			return
+		}
+	}()
+	defer func() {
+		err := pubsub.Close()
+		if err != nil {
+			sugar.Error(err)
+			return
+		}
+	}()
 
 	client := &Client{
 		UserID:    userID,
@@ -128,7 +148,9 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			sugar.Error(err)
+			if !strings.Contains(err.Error(), "1001") && !strings.Contains(err.Error(), "1005") {
+				sugar.Error(err)
+			}
 			break
 		}
 	}

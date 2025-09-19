@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -20,7 +21,12 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer picFormFile.Close()
+	defer func() {
+		err := picFormFile.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	// read bytes from received avatar pic
 	inputBytes, err := io.ReadAll(picFormFile)
@@ -61,7 +67,11 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 
 	// send the input bytes
 	_, err = stdin.Write(inputBytes)
-	stdin.Close()
+	if err != nil {
+		return "", err
+	}
+
+	err = stdin.Close()
 	if err != nil {
 		return "", err
 	}

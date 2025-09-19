@@ -65,7 +65,7 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		}
 
 		// check if token is expired
-		expired := time.Now().UTC().After(userToken.ExpiresAt.Time.UTC())
+		expired := time.Now().UTC().After(userToken.ExpiresAt.UTC())
 		if expired {
 			sugar.Debug(err)
 			http.Error(w, "Login expired", http.StatusUnauthorized)
@@ -75,7 +75,7 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		// check if user exists
 		cacheKey := fmt.Sprintf("user_exists:%d", userToken.UserID)
 
-		var userFound bool = false
+		userFound := false
 
 		_, redisGetErr := redisClient.Get(redisCtx, cacheKey).Result()
 		if redisGetErr == redis.Nil { // user isn't cached in redis
