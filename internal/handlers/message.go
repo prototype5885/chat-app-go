@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -63,7 +64,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.PublishRedis(messageBytes, msg.ChannelID)
+	err = redisClient.Publish(redisCtx, fmt.Sprint(msg.ChannelID), string(messageBytes)).Err()
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -173,7 +174,7 @@ func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.PublishRedis(messageBytes, channelID)
+	err = redisClient.Publish(redisCtx, fmt.Sprint(channelID), string(messageBytes)).Err()
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

@@ -1,14 +1,14 @@
 package hub
 
 const (
-	ServerDeleted  byte = 1
-	ServerModified byte = 2
+	ServerDeleted  = "ServerDeleted"
+	ServerModified = "ServerModified"
 
-	ChannelCreated  byte = 10
-	ChannelDeleted  byte = 11
-	ChannelModified byte = 12
+	ChannelCreated  = "ChannelCreated"
+	ChannelDeleted  = "ChannelDeleted"
+	ChannelModified = "ChannelModified"
 
-	MessageCreated  byte = 20
-	MessageDeleted  byte = 21
-	MessageModified byte = 22
+	MessageCreated  = "MessageCreated"
+	MessageDeleted  = "MessageDeleted"
+	MessageModified = "MessageModified"
 )

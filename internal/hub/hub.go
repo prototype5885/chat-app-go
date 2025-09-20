@@ -3,7 +3,6 @@ package hub
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -131,12 +130,7 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 				if !ok {
 					return
 				}
-				bytes, err := base64.StdEncoding.DecodeString(msg.Payload)
-				if err != nil {
-					sugar.Error(err)
-					return
-				}
-				err = client.Conn.WriteMessage(websocket.BinaryMessage, bytes)
+				err = client.Conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
 				if err != nil {
 					sugar.Error(err)
 					return
@@ -183,23 +177,27 @@ func GetClient(sessionID uint64) (*Client, bool) {
 	return client, exists
 }
 
-func PrepareMessage(messageType byte, messageToSend any) ([]byte, error) {
+func PrepareMessage(messageType string, messageToSend any) ([]byte, error) {
 	jsonBytes, err := json.Marshal(messageToSend)
 	if err != nil {
 		return nil, err
 	}
 
+	msgTypeStr := fmt.Sprintf("%s\n", messageType)
+
 	var buf bytes.Buffer
-	buf.Grow(1 + len(jsonBytes))
-	buf.WriteByte(messageType)
-	buf.Write(jsonBytes)
+	buf.Grow(len(msgTypeStr) + len(jsonBytes))
+
+	_, err = buf.Write([]byte(msgTypeStr))
+	if err != nil {
+		return nil, err
+	}
+	_, err = buf.Write(jsonBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), nil
-}
-
-func PublishRedis(messageBytes []byte, targetID uint64) error {
-	b64 := base64.StdEncoding.EncodeToString(messageBytes)
-	return redisClient.Publish(redisCtx, fmt.Sprint(targetID), b64).Err()
 }
 
 func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
@@ -214,13 +212,13 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 	var err error
 	switch channelType {
 	case "channel":
-		err = unsubscribeMessage(client, client.CurrentChannelID)
+		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentChannelID))
 		if err != nil {
 			return err
 		}
 		client.CurrentChannelID = key
 	case "server":
-		err = unsubscribeMessage(client, client.CurrentServerID)
+		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentServerID))
 		if err != nil {
 			return err
 		}
@@ -237,9 +235,4 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 	}
 
 	return nil
-
-}
-
-func unsubscribeMessage(client *Client, redisChannel uint64) error {
-	return client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(redisChannel))
 }

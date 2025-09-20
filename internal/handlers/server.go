@@ -6,6 +6,7 @@ import (
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -135,7 +136,7 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.PublishRedis(messageBytes, serverID)
+	err = redisClient.Publish(redisCtx, fmt.Sprint(serverID), string(messageBytes)).Err()
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
