@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -188,10 +189,12 @@ func PrepareMessage(messageType byte, messageToSend any) ([]byte, error) {
 		return nil, err
 	}
 
-	message := make([]byte, 1+len(jsonBytes))
-	message[0] = messageType
-	copy(message[1:], jsonBytes)
-	return message, nil
+	var buf bytes.Buffer
+	buf.Grow(1 + len(jsonBytes))
+	buf.WriteByte(messageType)
+	buf.Write(jsonBytes)
+
+	return buf.Bytes(), nil
 }
 
 func PublishRedis(messageBytes []byte, targetID uint64) error {
