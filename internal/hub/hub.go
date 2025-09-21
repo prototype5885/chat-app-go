@@ -30,7 +30,6 @@ type Client struct {
 	CurrentServerID  uint64
 	CurrentChannelID uint64
 	PubSub           *redis.PubSub
-	MsgCh            <-chan *redis.Message
 	Ctx              context.Context
 	mutex            sync.Mutex
 }
@@ -112,7 +111,6 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 		Conn:      conn,
 		SessionID: sessionID,
 		PubSub:    pubsub,
-		MsgCh:     pubsub.Channel(),
 		Ctx:       clientCtx,
 	}
 
@@ -124,7 +122,7 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-client.Ctx.Done():
 				return
-			case msg, ok := <-client.MsgCh:
+			case msg, ok := <-client.PubSub.Channel():
 				if !ok {
 					return
 				}
