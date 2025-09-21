@@ -91,6 +91,9 @@ func setupDatabase(cfg *models.ConfigFile) error {
 			return err
 		}
 
+		// there can be sqlite busy errors if this is not set to 1
+		db.SetMaxOpenConns(1)
+
 		_, err = db.Exec("PRAGMA foreign_keys = ON")
 		if err != nil {
 			return err
@@ -100,6 +103,8 @@ func setupDatabase(cfg *models.ConfigFile) error {
 		if err != nil {
 			return err
 		}
+
+		db.SetMaxOpenConns(10)
 	}
 
 	_, err = db.Exec(`
