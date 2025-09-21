@@ -12,6 +12,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+
+	_ "modernc.org/sqlite"
 )
 
 var sugar *zap.SugaredLogger
@@ -88,11 +90,21 @@ func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _su
 func setupDatabase(cfg *models.ConfigFile) error {
 	var err error
 
-	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase)
+	if cfg.SelfContained {
+		db, err = sql.Open("sqlite", "./database.db")
+		if err != nil {
+			return err
+		}
 
-	db, err = sql.Open("mysql", connString)
-	if err != nil {
-		return err
+		_, err = db.Exec("PRAGMA foreign_keys = ON")
+		if err != nil {
+			return err
+		}
+	} else {
+		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase))
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = db.Exec(`

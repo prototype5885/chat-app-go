@@ -41,6 +41,7 @@ type ConfigFile struct {
 	PrintHttpRequests bool
 	JwtSecret         string
 	SnowflakeWorkerID uint64
+	SelfContained     bool
 	DbUser            string
 	DbPassword        string
 	DbAddress         string

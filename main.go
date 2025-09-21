@@ -103,8 +103,10 @@ func main() {
 		sugar.Fatal(err)
 	}
 
+	var redisClient *redis.Client = nil
+
 	fmt.Println("Connecting to redis...")
-	redisClient, err := setupRedis()
+	redisClient, err = setupRedis()
 	if err != nil {
 		sugar.Fatal(err)
 	}
