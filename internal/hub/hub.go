@@ -41,8 +41,6 @@ var clientsMutex sync.Mutex
 var sugar *zap.SugaredLogger
 var redisClient *redis.Client
 
-var redisCtx = context.Background()
-
 func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client) {
 	sugar = _sugar
 	redisClient = _redisClient
@@ -209,16 +207,15 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
-	var err error
 	switch channelType {
 	case "channel":
-		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentChannelID))
+		err := client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentChannelID))
 		if err != nil {
 			return err
 		}
 		client.CurrentChannelID = key
 	case "server":
-		err = client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentServerID))
+		err := client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentServerID))
 		if err != nil {
 			return err
 		}
@@ -229,7 +226,7 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 		sugar.Fatal("Wrong channelType was provided to SubscribeMessage")
 	}
 
-	err = client.PubSub.Subscribe(client.Ctx, fmt.Sprint(key))
+	err := client.PubSub.Subscribe(client.Ctx, fmt.Sprint(key))
 	if err != nil {
 		return err
 	}
