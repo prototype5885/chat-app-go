@@ -28,7 +28,7 @@ type Message struct {
 	ChannelID   uint64 `json:"channelID,string"`
 	UserID      uint64 `json:"userID,string"`
 	Message     string `json:"message"`
-	Attachments []byte `json:"attachments"`
+	Attachments string `json:"attachments"`
 	Edited      bool   `json:"edited"`
 	User        User   `json:"user"`
 }

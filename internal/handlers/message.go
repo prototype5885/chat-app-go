@@ -39,7 +39,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		ChannelID:   messageRequest.ChannelID,
 		UserID:      userID,
 		Message:     messageRequest.Message,
-		Attachments: []byte{},
+		Attachments: "",
 		Edited:      false,
 	}
 

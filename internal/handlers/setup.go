@@ -101,7 +101,7 @@ func setupDatabase(cfg *models.ConfigFile) error {
 				email VARCHAR(64) NOT NULL UNIQUE,
 				username VARCHAR(32) NOT NULL UNIQUE,
 				display_name VARCHAR(64) NOT NULL,
-				picture TEXT NOT NULL,
+				picture TEXT,
 				password BINARY(60) NOT NULL
 			);
 		`)
@@ -114,8 +114,8 @@ func setupDatabase(cfg *models.ConfigFile) error {
 				id BIGINT UNSIGNED PRIMARY KEY,
 				owner_id BIGINT UNSIGNED NOT NULL,
 				name VARCHAR(64) NOT NULL,
-				picture TEXT NOT NULL,
-				banner TEXT NOT NULL,
+				picture TEXT,
+				banner TEXT,
 				FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
 			);
 		`)
@@ -190,7 +190,7 @@ func setupDatabase(cfg *models.ConfigFile) error {
 				channel_id BIGINT UNSIGNED NOT NULL,
 				user_id BIGINT UNSIGNED NOT NULL,
 				message TEXT NOT NULL,
-				attachments BLOB NOT NULL,
+				attachments TEXT,
 				edited BOOLEAN NOT NULL,
 				FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
