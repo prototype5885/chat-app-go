@@ -129,14 +129,7 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := hub.PrepareMessage(hub.ServerDeleted, serverID)
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	err = redisClient.Publish(redisCtx, fmt.Sprint(serverID), string(messageBytes)).Err()
+	err = hub.Emit(hub.ServerDeleted, serverID, fmt.Sprint(serverID))
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

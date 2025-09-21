@@ -54,19 +54,13 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := hub.PrepareMessage(hub.ChannelCreated, channel)
+	err = hub.Emit(hub.ChannelCreated, channel, fmt.Sprint(serverID))
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	err = redisClient.Publish(redisCtx, fmt.Sprint(serverID), string(messageBytes)).Err()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
 }
 
 func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {

@@ -40,6 +40,8 @@ var clientsMutex sync.Mutex
 var sugar *zap.SugaredLogger
 var redisClient *redis.Client
 
+var redisCtx = context.Background()
+
 func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client) {
 	sugar = _sugar
 	redisClient = _redisClient
@@ -173,29 +175,6 @@ func GetClient(sessionID uint64) (*Client, bool) {
 	return client, exists
 }
 
-func PrepareMessage(messageType string, messageToSend any) ([]byte, error) {
-	jsonBytes, err := json.Marshal(messageToSend)
-	if err != nil {
-		return nil, err
-	}
-
-	msgTypeStr := fmt.Sprintf("%s\n", messageType)
-
-	var buf bytes.Buffer
-	buf.Grow(len(msgTypeStr) + len(jsonBytes))
-
-	_, err = buf.Write([]byte(msgTypeStr))
-	if err != nil {
-		return nil, err
-	}
-	_, err = buf.Write(jsonBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return buf.Bytes(), nil
-}
-
 func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 	client, exists := GetClient(sessionID)
 	if !exists {
@@ -225,6 +204,34 @@ func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
 	}
 
 	err := client.PubSub.Subscribe(client.Ctx, fmt.Sprint(key))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Emit(messageType string, message any, redisChannel string) error {
+	jsonBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	msgTypeStr := fmt.Sprintf("%s\n", messageType)
+
+	var buf bytes.Buffer
+	buf.Grow(len(msgTypeStr) + len(jsonBytes))
+
+	_, err = buf.WriteString(msgTypeStr)
+	if err != nil {
+		return err
+	}
+	_, err = buf.Write(jsonBytes)
+	if err != nil {
+		return err
+	}
+
+	err = redisClient.Publish(redisCtx, redisChannel, buf.String()).Err()
 	if err != nil {
 		return err
 	}

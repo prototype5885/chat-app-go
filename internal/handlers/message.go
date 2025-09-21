@@ -57,14 +57,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := hub.PrepareMessage(hub.MessageCreated, msg)
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	err = redisClient.Publish(redisCtx, fmt.Sprint(msg.ChannelID), string(messageBytes)).Err()
+	err = hub.Emit(hub.MessageCreated, msg, fmt.Sprint(msg.ChannelID))
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -167,14 +160,7 @@ func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messageBytes, err := hub.PrepareMessage(hub.MessageDeleted, messageID)
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	err = redisClient.Publish(redisCtx, fmt.Sprint(channelID), string(messageBytes)).Err()
+	err = hub.Emit(hub.MessageDeleted, messageID, fmt.Sprint(channelID))
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
