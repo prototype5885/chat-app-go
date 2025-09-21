@@ -21,10 +21,14 @@ var db *sql.DB
 
 var validate *validator.Validate
 
-func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
+func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _sugar *zap.SugaredLogger) error {
 	sugar = _sugar
 	redisClient = _redisClient
-	db = _db
+
+	err := setupDatabase(cfg)
+	if err != nil {
+		return err
+	}
 
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
@@ -81,12 +85,14 @@ func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _su
 	return http.ListenAndServe(address, handler)
 }
 
-func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
+func setupDatabase(cfg *models.ConfigFile) error {
+	var err error
+
 	connString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase)
 
-	db, err := sql.Open("mysql", connString)
+	db, err = sql.Open("mysql", connString)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(`
@@ -100,7 +106,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(`
@@ -114,7 +120,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(`
@@ -128,7 +134,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// _, err = db.Exec(`
@@ -139,7 +145,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 	// 		);
 	// 	`)
 	// if err != nil {
-	// 	return nil, err
+	// 	return err
 	// }
 
 	_, err = db.Exec(`
@@ -151,7 +157,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// _, err = db.Exec(`
@@ -163,7 +169,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 	// 		);
 	// 	`)
 	// if err != nil {
-	// 	return nil, err
+	// 	return err
 	// }
 
 	// _, err = db.Exec(`
@@ -175,7 +181,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 	// 		);
 	// 	`)
 	// if err != nil {
-	// 	return nil, err
+	// 	return err
 	// }
 
 	_, err = db.Exec(`
@@ -191,7 +197,7 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(`
@@ -203,8 +209,8 @@ func SetupDatabase(cfg *models.ConfigFile) (*sql.DB, error) {
 			);
 		`)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return db, nil
+	return nil
 }

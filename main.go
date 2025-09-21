@@ -103,12 +103,6 @@ func main() {
 		sugar.Fatal(err)
 	}
 
-	fmt.Println("Connecting to database...")
-	db, err := handlers.SetupDatabase(cfg)
-	if err != nil {
-		sugar.Fatal(err)
-	}
-
 	fmt.Println("Connecting to redis...")
 	redisClient, err := setupRedis()
 	if err != nil {
@@ -139,7 +133,7 @@ func main() {
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = handlers.Setup(isHttps, redisClient, cfg, sugar, db)
+	err = handlers.Setup(isHttps, redisClient, cfg, sugar)
 	if err != nil {
 		sugar.Fatal(err)
 	}
