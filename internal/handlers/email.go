@@ -1,14 +1,12 @@
 package handlers
 
 import (
+	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/redis/go-redis/v9"
 )
 
 func ConfirmEmail(w http.ResponseWriter, r *http.Request) {
@@ -25,25 +23,19 @@ func ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userBase64, err := redisClient.GetDel(redisCtx, fmt.Sprintf("registration:%s", token)).Result()
-	if err == redis.Nil {
-		http.Error(w, "Token isn't valid", http.StatusUnauthorized)
-		return
-	} else if err != nil {
-		sugar.Error(err)
-		http.Error(w, "Error", http.StatusInternalServerError)
-		return
-	}
-
-	bytes, err := base64.StdEncoding.DecodeString(userBase64)
+	value, err := keyValue.GetDel(fmt.Sprintf("registration:%s", token))
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "Error", http.StatusInternalServerError)
 		return
 	}
 
+	if value == "" {
+		http.Error(w, "Token isn't valid", http.StatusUnauthorized)
+		return
+	}
 	var u models.User
-	err = json.Unmarshal(bytes, &u)
+	err = json.Unmarshal([]byte(value), &u)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "Error", http.StatusInternalServerError)

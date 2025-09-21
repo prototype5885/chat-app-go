@@ -3,29 +3,24 @@ package handlers
 import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
-	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
 	_ "modernc.org/sqlite"
 )
 
 var sugar *zap.SugaredLogger
-var redisClient *redis.Client
-var redisCtx = context.Background()
 var db *sql.DB
 
 var validate *validator.Validate
 
-func Setup(isHttps bool, _redisClient *redis.Client, cfg *models.ConfigFile, _sugar *zap.SugaredLogger) error {
+func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger) error {
 	sugar = _sugar
-	redisClient = _redisClient
 
 	err := setupDatabase(cfg)
 	if err != nil {

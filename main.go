@@ -5,6 +5,7 @@ import (
 	"chatapp-backend/internal/handlers"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/jwt"
+	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
 	"context"
 	"os/exec"
@@ -111,6 +112,8 @@ func main() {
 		sugar.Fatal(err)
 	}
 
+	keyValue.Setup(sugar, redisClient, cfg.SelfContained)
+
 	hub.Setup(sugar, redisClient)
 
 	err = snowflake.Setup(cfg.SnowflakeWorkerID)
@@ -129,13 +132,13 @@ func main() {
 
 	fullAddress := fmt.Sprintf("%s://%s:%s", httpProtocol, cfg.Address, cfg.Port)
 
-	email.Setup(redisClient, cfg, fullAddress)
+	email.Setup(cfg, fullAddress)
 
 	jwt.Setup(cfg.JwtSecret)
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = handlers.Setup(isHttps, redisClient, cfg, sugar)
+	err = handlers.Setup(isHttps, cfg, sugar)
 	if err != nil {
 		sugar.Fatal(err)
 	}

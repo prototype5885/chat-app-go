@@ -5,12 +5,7 @@ import (
 	"fmt"
 	"net/smtp"
 	"net/url"
-
-	"github.com/redis/go-redis/v9"
 )
-
-// var redisClient *redis.Client
-// var redisCtx = context.Background()
 
 var server string
 var address string
@@ -18,8 +13,7 @@ var username string
 var password string
 var fullServerAddress string
 
-func Setup(_redisClient *redis.Client, cfg *models.ConfigFile, _fullServerAddress string) {
-	// redisClient = _redisClient
+func Setup(cfg *models.ConfigFile, _fullServerAddress string) {
 	server = cfg.SmtpServer
 	address = fmt.Sprintf("%s:%d", cfg.SmtpServer, cfg.SmtpPort)
 	username = cfg.SmtpUsername

@@ -3,13 +3,12 @@ package handlers
 import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/jwt"
+	"chatapp-backend/internal/keyValue"
 	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
 func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Request)) func(uint64, http.ResponseWriter, *http.Request) {
@@ -73,12 +72,18 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		}
 
 		// check if user exists
-		cacheKey := fmt.Sprintf("user_exists:%d", userToken.UserID)
+		key := fmt.Sprintf("user_exists:%d", userToken.UserID)
 
 		userFound := false
 
-		_, redisGetErr := redisClient.Get(redisCtx, cacheKey).Result()
-		if redisGetErr == redis.Nil { // user isn't cached in redis
+		value, err := keyValue.Get(key)
+		if err != nil {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		if value == "" { // user isn't cached
 			dbErr := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&userFound)
 			if dbErr != nil {
 				sugar.Error(dbErr)
@@ -86,22 +91,18 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 				return
 			}
 			if userFound {
-				_, redisSetErr := redisClient.Set(redisCtx, cacheKey, "y", 15*time.Minute).Result()
-				if redisSetErr != nil {
-					sugar.Error(redisSetErr)
+				err = keyValue.Set(key, "y", 15*time.Minute)
+				if err != nil {
+					sugar.Error(err)
 					http.Error(w, "", http.StatusInternalServerError)
 					return
 				}
-				sugar.Debugf("User ID %d was found in database and was cached in redis\n", userToken.UserID)
+				sugar.Debugf("User ID %d was found in database and was cached\n", userToken.UserID)
 			} else {
 				sugar.Error("User ID %d was not found in database\n", userToken.UserID)
 			}
-		} else if redisGetErr != nil { // redis error
-			sugar.Error(redisGetErr)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		} else { // user was found in redis
-			sugar.Debugf("User ID %d was found cached in redis\n", userToken.UserID)
+		} else {
+			sugar.Debugf("User ID %d was found in cache\n", userToken.UserID)
 			userFound = true
 		}
 

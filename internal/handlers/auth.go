@@ -3,10 +3,10 @@ package handlers
 import (
 	"chatapp-backend/internal/email"
 	"chatapp-backend/internal/jwt"
+	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
 	"database/sql"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -147,9 +147,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	b64 := base64.StdEncoding.EncodeToString(bytes)
-
-	err = redisClient.Set(redisCtx, fmt.Sprintf("registration:%s", token.String()), b64, 1*time.Hour).Err()
+	err = keyValue.Set(fmt.Sprintf("registration:%s", token.String()), string(bytes), 1*time.Hour)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
