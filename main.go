@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chatapp-backend/internal/database"
 	"chatapp-backend/internal/email"
 	"chatapp-backend/internal/handlers"
 	"chatapp-backend/internal/hub"
@@ -104,6 +105,11 @@ func main() {
 		sugar.Fatal(err)
 	}
 
+	db, err := database.Setup(cfg)
+	if err != nil {
+		sugar.Fatal(err)
+	}
+
 	var redisClient *redis.Client = nil
 
 	fmt.Println("Connecting to redis...")
@@ -138,7 +144,7 @@ func main() {
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = handlers.Setup(isHttps, cfg, sugar)
+	err = handlers.Setup(isHttps, cfg, sugar, db)
 	if err != nil {
 		sugar.Fatal(err)
 	}
