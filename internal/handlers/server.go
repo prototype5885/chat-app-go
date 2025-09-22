@@ -6,7 +6,6 @@ import (
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -99,7 +98,7 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 	}
 
 	for _, server := range servers {
-		err = hub.SubscribeRedis(server.ID, "server_list", sessionID)
+		err = hub.Subscribe(server.ID, "server_list", sessionID)
 		if err != nil {
 			sugar.Error(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -129,7 +128,7 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Emit(hub.ServerDeleted, serverID, fmt.Sprint(serverID))
+	err = hub.Emit(hub.ServerDeleted, serverID, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

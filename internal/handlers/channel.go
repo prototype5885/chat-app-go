@@ -5,7 +5,6 @@ import (
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -54,7 +53,7 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Emit(hub.ChannelCreated, channel, fmt.Sprint(serverID))
+	err = hub.Emit(hub.ChannelCreated, channel, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -107,7 +106,7 @@ func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	err = hub.SubscribeRedis(serverID, "server", sessionID)
+	err = hub.Subscribe(serverID, "server", sessionID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

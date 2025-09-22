@@ -1,11 +1,8 @@
 package hub
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +12,19 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+)
+
+const (
+	ServerDeleted  = "ServerDeleted"
+	ServerModified = "ServerModified"
+
+	ChannelCreated  = "ChannelCreated"
+	ChannelDeleted  = "ChannelDeleted"
+	ChannelModified = "ChannelModified"
+
+	MessageCreated  = "MessageCreated"
+	MessageDeleted  = "MessageDeleted"
+	MessageModified = "MessageModified"
 )
 
 const (
@@ -31,21 +41,24 @@ type Client struct {
 	CurrentServerID  uint64
 	CurrentChannelID uint64
 	PubSub           *redis.PubSub
+	WsChannel        chan string
 	Ctx              context.Context
 	mutex            sync.Mutex
 }
 
 var clients = make(map[uint64]*Client)
-var clientsMutex sync.Mutex
+var clientsMutex sync.RWMutex
 
 var sugar *zap.SugaredLogger
 var redisClient *redis.Client
+var selfContained bool
 
 var redisCtx = context.Background()
 
-func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client) {
+func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained bool) {
 	sugar = _sugar
 	redisClient = _redisClient
+	selfContained = _selfContained
 }
 
 func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
@@ -94,27 +107,31 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	clientCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	pubsub := redisClient.Subscribe(clientCtx)
-	defer func() {
-		err := pubsub.Unsubscribe(clientCtx)
-		if err != nil && !strings.EqualFold(err.Error(), "redis: client is closed") {
-			sugar.Error(err)
-			return
-		}
-	}()
-	defer func() {
-		err := pubsub.Close()
-		if err != nil {
-			sugar.Error(err)
-			return
-		}
-	}()
+	var pubsub *redis.PubSub
+	if !selfContained {
+		pubsub = redisClient.Subscribe(clientCtx)
+		defer func() {
+			err := pubsub.Unsubscribe(clientCtx)
+			if err != nil && !strings.EqualFold(err.Error(), "redis: client is closed") {
+				sugar.Error(err)
+				return
+			}
+		}()
+		defer func() {
+			err := pubsub.Close()
+			if err != nil {
+				sugar.Error(err)
+				return
+			}
+		}()
+	}
 
 	client := &Client{
 		UserID:    userID,
 		Conn:      conn,
 		SessionID: sessionID,
 		PubSub:    pubsub,
+		WsChannel: make(chan string),
 		Ctx:       clientCtx,
 	}
 
@@ -124,17 +141,32 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
+	var redisChannel <-chan *redis.Message
+	if client.PubSub != nil {
+		redisChannel = client.PubSub.Channel()
+	}
+
 	go func() {
 		for {
 			select {
 			case <-client.Ctx.Done():
 				return
-			case msg, ok := <-client.PubSub.Channel():
-				if !ok {
+			case msg, ok := <-redisChannel:
+				if pubsub == nil && !ok {
 					return
 				}
 				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 				err = conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+				if err != nil {
+					sugar.Error(err)
+					return
+				}
+			case msg, ok := <-client.WsChannel:
+				if !ok {
+					return
+				}
+				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err = conn.WriteMessage(websocket.TextMessage, []byte(msg))
 				if err != nil {
 					sugar.Error(err)
 					return
@@ -177,6 +209,10 @@ func setClient(sessionID uint64, client *Client) {
 
 func deleteClient(sessionID uint64) {
 	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
+	if selfContained {
+		unsubscribeFromAllLocalPubSub(sessionID)
+	}
+
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
 
@@ -184,73 +220,9 @@ func deleteClient(sessionID uint64) {
 }
 
 func GetClient(sessionID uint64) (*Client, bool) {
-	clientsMutex.Lock()
-	defer clientsMutex.Unlock()
+	clientsMutex.RLock()
+	defer clientsMutex.RUnlock()
 
 	client, exists := clients[sessionID]
 	return client, exists
-}
-
-func SubscribeRedis(key uint64, channelType string, sessionID uint64) error {
-	client, exists := GetClient(sessionID)
-	if !exists {
-		return fmt.Errorf("session ID [%d] tried to subscribe to redis channel [%d] but the session isn't connected to hub", sessionID, key)
-	}
-
-	client.mutex.Lock()
-	defer client.mutex.Unlock()
-
-	switch channelType {
-	case "channel":
-		err := client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentChannelID))
-		if err != nil {
-			return err
-		}
-		client.CurrentChannelID = key
-	case "server":
-		err := client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(client.CurrentServerID))
-		if err != nil {
-			return err
-		}
-		client.CurrentServerID = key
-	case "server_list":
-		// no need to unsubscribe anything as it's a list of multiple servers constantly in view
-	default:
-		sugar.Fatal("Wrong channelType was provided to SubscribeMessage")
-	}
-
-	err := client.PubSub.Subscribe(client.Ctx, fmt.Sprint(key))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func Emit(messageType string, message any, redisChannel string) error {
-	jsonBytes, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
-
-	msgTypeStr := fmt.Sprintf("%s\n", messageType)
-
-	var buf bytes.Buffer
-	buf.Grow(len(msgTypeStr) + len(jsonBytes))
-
-	_, err = buf.WriteString(msgTypeStr)
-	if err != nil {
-		return err
-	}
-	_, err = buf.Write(jsonBytes)
-	if err != nil {
-		return err
-	}
-
-	err = redisClient.Publish(redisCtx, redisChannel, buf.String()).Err()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

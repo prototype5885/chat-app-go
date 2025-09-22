@@ -112,15 +112,18 @@ func main() {
 
 	var redisClient *redis.Client = nil
 
-	fmt.Println("Connecting to redis...")
-	redisClient, err = setupRedis()
-	if err != nil {
-		sugar.Fatal(err)
+	if cfg.SelfContained {
+		fmt.Println("Using local key/value and pub/sub service...")
+		keyValue.Setup(sugar, redisClient, cfg.SelfContained)
+	} else {
+		fmt.Println("Connecting to redis...")
+		redisClient, err = setupRedis()
+		if err != nil {
+			sugar.Fatal(err)
+		}
 	}
 
-	keyValue.Setup(sugar, redisClient, cfg.SelfContained)
-
-	hub.Setup(sugar, redisClient)
+	hub.Setup(sugar, redisClient, cfg.SelfContained)
 
 	err = snowflake.Setup(cfg.SnowflakeWorkerID)
 	if err != nil {

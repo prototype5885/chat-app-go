@@ -28,9 +28,7 @@ func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained
 	redisClient = _redisClient
 	selfContained = _selfContained
 
-	if selfContained {
-		go checkForExpiredKeys()
-	}
+	go checkForExpiredKeys()
 }
 
 func checkForExpiredKeys() {
