@@ -10,18 +10,19 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
-// const (
-// writeWait = 10 * time.Second
-// pongWait       = 60 * time.Second
-// pingPeriod     = (pongWait * 9) / 10
-// maxMessageSize = 512
-// )
+const (
+	writeWait      = 10 * time.Second
+	pingInterval   = 60 * time.Second
+	pongWaitTime   = pingInterval * 11 / 10
+	maxMessageSize = 8192
+)
 
 type Client struct {
 	UserID           uint64
@@ -120,6 +121,9 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	setClient(sessionID, client)
 
 	// listening to redis pub/sub messages to send them to client
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
 	go func() {
 		for {
 			select {
@@ -129,7 +133,15 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 				if !ok {
 					return
 				}
-				err = client.Conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err = conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+				if err != nil {
+					sugar.Error(err)
+					return
+				}
+			case <-ticker.C:
+				conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := conn.WriteMessage(websocket.PingMessage, nil)
 				if err != nil {
 					sugar.Error(err)
 					return
@@ -140,9 +152,12 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 
 	// listening to incoming messages directly from client
 	for {
+		conn.SetReadLimit(maxMessageSize)
+		conn.SetReadDeadline(time.Now().Add(pongWaitTime))
+		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWaitTime)); return nil })
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			if !strings.Contains(err.Error(), "1001") && !strings.Contains(err.Error(), "1005") {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				sugar.Error(err)
 			}
 			break
