@@ -70,8 +70,9 @@ func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  4096,
-		WriteBufferSize: 4096,
+		ReadBufferSize:    4096,
+		WriteBufferSize:   4096,
+		EnableCompression: true,
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
