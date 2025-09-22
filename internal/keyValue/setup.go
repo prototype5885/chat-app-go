@@ -28,10 +28,12 @@ func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained
 	redisClient = _redisClient
 	selfContained = _selfContained
 
-	go checkForExpiredKeys()
+	if selfContained {
+		go checkForLocalExpiredKeys()
+	}
 }
 
-func checkForExpiredKeys() {
+func checkForLocalExpiredKeys() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 

@@ -2,15 +2,10 @@ package hub
 
 import (
 	"bytes"
+	"chatapp-backend/internal/globals"
 	"encoding/json"
 	"fmt"
 	"sync"
-)
-
-const (
-	ChannelTypeChannel    = "channel"
-	ChannelTypeServer     = "server"
-	ChannelTypeServerList = "server_list"
 )
 
 var localPubSubMutex sync.RWMutex
@@ -57,7 +52,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 		if selfContained {
 			unsubscribeFromLocalPubSub(oldKey, sessionID)
 		} else {
-			err := client.PubSub.Unsubscribe(client.Ctx, fmt.Sprint(oldKey))
+			err := client.PubSub.Unsubscribe(client.Ctx, oldKey)
 			if err != nil {
 				return err
 			}
@@ -67,7 +62,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 	}
 
 	switch channelType {
-	case ChannelTypeChannel:
+	case globals.ChannelTypeChannel:
 		sugar.Debugf("Session ID %d unsubscribed from channel ID %d", sessionID, client.CurrentChannelID)
 		oldKey := fmt.Sprintf("%s:%d", channelType, client.CurrentChannelID)
 		err := unsub(oldKey, sessionID)
@@ -75,7 +70,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 			return err
 		}
 		client.CurrentChannelID = channel
-	case ChannelTypeServer:
+	case globals.ChannelTypeServer:
 		sugar.Debugf("Session ID %d unsubscribed from server ID %d", sessionID, client.CurrentServerID)
 		oldKey := fmt.Sprintf("%s:%d", channelType, client.CurrentServerID)
 		err := unsub(oldKey, sessionID)
@@ -83,7 +78,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 			return err
 		}
 		client.CurrentServerID = channel
-	case ChannelTypeServerList:
+	case globals.ChannelTypeServerList:
 		// no need to unsubscribe anything as it's a list of multiple servers constantly in view
 	default:
 		sugar.Fatal("Wrong channelType was provided to SubscribeMessage")
@@ -94,7 +89,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 	if selfContained {
 		localPubSub[newKey] = append(localPubSub[newKey], sessionID)
 	} else {
-		err := client.PubSub.Subscribe(client.Ctx, fmt.Sprint(channel))
+		err := client.PubSub.Subscribe(client.Ctx, newKey)
 		if err != nil {
 			return err
 		}
@@ -123,8 +118,8 @@ func unsubscribeFromAllLocalPubSub(sessionID uint64) {
 	}
 }
 
-func Emit(messageType string, message any, _channel uint64) error {
-	channel := fmt.Sprint(_channel)
+func Emit(messageType string, channelType string, message any, _channel uint64) error {
+	channel := fmt.Sprintf("%s:%d", channelType, _channel)
 
 	jsonBytes, err := json.Marshal(message)
 	if err != nil {
@@ -145,11 +140,11 @@ func Emit(messageType string, message any, _channel uint64) error {
 		return err
 	}
 
+	sugar.Debugf("Sending message to those on channel %s", channel)
+
 	if selfContained {
 		localPubSubMutex.RLock()
 		defer localPubSubMutex.RUnlock()
-
-		sugar.Debugf("Sending message to those on channel %d", channel)
 
 		sessionIDs := localPubSub[channel]
 		for i := range sessionIDs {

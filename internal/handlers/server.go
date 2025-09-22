@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"chatapp-backend/internal/fileHandlers"
+	"chatapp-backend/internal/globals"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
@@ -98,7 +99,7 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 	}
 
 	for _, server := range servers {
-		err = hub.Subscribe(server.ID, "server_list", sessionID)
+		err = hub.Subscribe(server.ID, globals.ChannelTypeServerList, sessionID)
 		if err != nil {
 			sugar.Error(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -128,7 +129,7 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Emit(hub.ServerDeleted, serverID, serverID)
+	err = hub.Emit(hub.ServerDeleted, globals.ChannelTypeServerList, serverID, serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

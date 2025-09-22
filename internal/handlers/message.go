@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"chatapp-backend/internal/globals"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
@@ -56,7 +57,7 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Emit(hub.MessageCreated, msg, msg.ChannelID)
+	err = hub.Emit(hub.MessageCreated, globals.ChannelTypeChannel, msg, msg.ChannelID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -122,7 +123,7 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 		return
 	}
 
-	err = hub.Subscribe(channelID, "channel", sessionID)
+	err = hub.Subscribe(channelID, globals.ChannelTypeChannel, sessionID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -159,7 +160,7 @@ func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Emit(hub.MessageDeleted, messageID, channelID)
+	err = hub.Emit(hub.MessageDeleted, globals.ChannelTypeChannel, messageID, channelID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
