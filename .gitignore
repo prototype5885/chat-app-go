@@ -27,6 +27,8 @@ config.json
 *.key
 *.pem
 *.db
+*.db-shm
+*.db-wal
 
 public/
 chatapp-backend

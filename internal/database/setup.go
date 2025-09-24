@@ -25,8 +25,11 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 		// there can be sqlite busy errors if this is not set to 1
 		db.SetMaxOpenConns(1)
 
-		_, err = db.Exec("PRAGMA foreign_keys = ON")
-		if err != nil {
+		if _, err = db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+			return db, err
+		}
+
+		if _, err = db.Exec("PRAGMA journal_mode = WAL"); err != nil {
 			return db, err
 		}
 	} else {
