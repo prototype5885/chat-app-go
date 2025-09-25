@@ -4,6 +4,7 @@ import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/jwt"
 	"chatapp-backend/internal/keyValue"
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,8 +12,11 @@ import (
 	"time"
 )
 
-func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Request)) func(uint64, http.ResponseWriter, *http.Request) {
-	return func(userID uint64, w http.ResponseWriter, r *http.Request) {
+type SessionIDKeyType struct{}
+type UserIDKeyType struct{}
+
+func SessionVerifier(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie, err := r.Cookie("session")
 		if err != nil {
 			sugar.Debug(err)
@@ -34,16 +38,17 @@ func SessionVerifier(next func(uint64, uint64, http.ResponseWriter, *http.Reques
 
 		_, exists := hub.GetClient(sessionID)
 		if exists {
-			next(userID, sessionID, w, r)
+			ctx := context.WithValue(r.Context(), SessionIDKeyType{}, sessionID)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		} else {
 			http.Error(w, "You are not connected to websocket", http.StatusUnauthorized)
 			return
 		}
-	}
+	})
 }
 
-func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func UserVerifier(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		jwtCookie, err := r.Cookie("JWT")
 		if err != nil {
 			sugar.Debug(err)
@@ -137,6 +142,7 @@ func Middleware(next func(uint64, http.ResponseWriter, *http.Request)) func(http
 		}
 
 		// this passes the authenticated user's ID to next handler
-		next(userToken.UserID, w, r)
-	}
+		ctx := context.WithValue(r.Context(), UserIDKeyType{}, userToken.UserID)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

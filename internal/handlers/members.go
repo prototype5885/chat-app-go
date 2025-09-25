@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func GetMemberList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
+func GetMemberList(w http.ResponseWriter, r *http.Request) {
 	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)

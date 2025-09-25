@@ -10,7 +10,10 @@ import (
 	"strconv"
 )
 
-func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
+func CreateMessage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	type AddMessageRequest struct {
 		Message   string `json:"message"`
 		ChannelID uint64 `json:"channelID,string"`
@@ -65,7 +68,10 @@ func CreateMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
+func GetMessageList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+
 	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid channel ID", http.StatusBadRequest)
@@ -138,7 +144,10 @@ func GetMessageList(userID uint64, sessionID uint64, w http.ResponseWriter, r *h
 	}
 }
 
-func DeleteMessage(userID uint64, w http.ResponseWriter, r *http.Request) {
+func DeleteMessage(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	messageID, err := strconv.ParseUint(r.URL.Query().Get("messageID"), 10, 64)
 	if err != nil || messageID == 0 {
 		http.Error(w, "Invalid message ID", http.StatusBadRequest)

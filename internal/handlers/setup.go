@@ -1,13 +1,14 @@
 package handlers
 
 import (
-	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
 	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 
@@ -25,55 +26,73 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 
 	validate = validator.New(validator.WithRequiredStructEnabled())
 
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("GET /api/test", Test)
-
-	mux.HandleFunc("POST /api/auth/login", Login)
-	mux.HandleFunc("POST /api/auth/register", Register)
-	mux.HandleFunc("GET /api/auth/newSession", Middleware(NewSession))
-	mux.HandleFunc("GET /api/auth/isLoggedIn", Middleware(func(userID uint64, w http.ResponseWriter, r *http.Request) {}))
-
-	mux.HandleFunc("GET /api/user/fetch", Middleware(GetUserInfo))
-	mux.HandleFunc("POST /api/user/update", Middleware(UpdateUserInfo))
-
-	mux.HandleFunc("POST /api/server/create", Middleware(CreateServer))
-	mux.HandleFunc("GET /api/server/fetch", Middleware(SessionVerifier(GetServerList)))
-	mux.HandleFunc("POST /api/server/delete", Middleware(DeleteServer))
-	mux.HandleFunc("POST /api/server/rename", Middleware(RenameServer))
-
-	mux.HandleFunc("POST /api/channel/create", Middleware(CreateChannel))
-	mux.HandleFunc("GET /api/channel/fetch", Middleware(SessionVerifier(GetChannelList)))
-
-	mux.HandleFunc("POST /api/message/create", Middleware(CreateMessage))
-	mux.HandleFunc("GET /api/message/fetch", Middleware(SessionVerifier(GetMessageList)))
-	mux.HandleFunc("POST /api/message/delete", Middleware(DeleteMessage))
-
-	mux.HandleFunc("GET /api/members/fetch", Middleware(SessionVerifier(GetMemberList)))
-
-	mux.HandleFunc("GET /api/email/confirm", ConfirmEmail)
-
-	mux.Handle("/cdn/", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-
-	mux.HandleFunc("/ws", Middleware(hub.HandleClient))
-
-	var handler http.Handler
+	r := chi.NewRouter()
+	// mux.Use(middleware.RequestID)
+	// mux.Use(middleware.RealIP)
 	if cfg.PrintHttpRequests {
-		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			mux.ServeHTTP(w, r)
-			duration := time.Since(start)
-
-			fmt.Printf("[%s] %s %s from %s - Duration: %v\n", start.Format(time.RFC1123), r.Method, r.URL, r.RemoteAddr, duration)
-		})
-	} else {
-		handler = mux
+		r.Use(middleware.Logger)
 	}
+
+	r.Use(middleware.Recoverer)
+	// mux.Use(middleware.Compress(5))
+
+	r.Use(middleware.Timeout(60 * time.Second))
+
+	r.Route("/api", func(api chi.Router) {
+		api.Get("/test", Test)
+
+		api.Route("/auth", func(r chi.Router) {
+			r.Post("/login", Login)
+			r.Post("/register", Register)
+			r.With(UserVerifier).Get("/newSession", NewSession)
+			r.With(UserVerifier).Get("/isLoggedIn", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+		})
+
+		api.Route("/user", func(r chi.Router) {
+			r.Use(UserVerifier)
+			r.Get("/fetch", GetUserInfo)
+			r.Post("/update", UpdateUserInfo)
+		})
+
+		api.Route("/server", func(r chi.Router) {
+			r.Use(UserVerifier)
+			r.Post("/create", CreateServer)
+			r.With(SessionVerifier).Get("/fetch", GetServerList)
+			r.Post("/delete", DeleteServer)
+			r.Post("/rename", RenameServer)
+		})
+
+		api.Route("/channel", func(r chi.Router) {
+			r.Use(UserVerifier)
+			r.Post("/create", CreateChannel)
+			r.With(SessionVerifier).Get("/fetch", GetChannelList)
+		})
+
+		api.Route("/message", func(r chi.Router) {
+			r.Use(UserVerifier)
+			r.Post("/create", CreateMessage)
+			r.With(SessionVerifier).Get("/fetch", GetMessageList)
+			r.Post("/delete", DeleteMessage)
+		})
+
+		api.Route("/members", func(r chi.Router) {
+			r.Use(UserVerifier)
+			r.With(SessionVerifier).Get("/fetch", GetMemberList)
+		})
+
+		api.Route("/email", func(r chi.Router) {
+			r.Get("/confirm", ConfirmEmail)
+		})
+	})
+
+	r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+
+	r.With(UserVerifier).Get("/ws", HandleWebSocket)
 
 	address := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
 
 	if isHttps {
-		return http.ListenAndServeTLS(address, cfg.TlsCert, cfg.TlsKey, handler)
+		return http.ListenAndServeTLS(address, cfg.TlsCert, cfg.TlsKey, r)
 	}
-	return http.ListenAndServe(address, handler)
+	return http.ListenAndServe(address, r)
 }

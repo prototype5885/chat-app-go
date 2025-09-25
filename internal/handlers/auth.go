@@ -169,7 +169,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewSession(_ uint64, w http.ResponseWriter, r *http.Request) {
+func NewSession(w http.ResponseWriter, r *http.Request) {
 	sessionID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)

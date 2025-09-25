@@ -61,7 +61,7 @@ func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained
 	selfContained = _selfContained
 }
 
-func HandleClient(userID uint64, w http.ResponseWriter, r *http.Request) {
+func HandleClient(w http.ResponseWriter, r *http.Request, userID uint64) {
 	sugar.Debugf("Connecting user ID [%d] to WebSocket", userID)
 
 	sessionCookie, err := r.Cookie("session")

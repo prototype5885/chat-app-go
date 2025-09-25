@@ -8,7 +8,10 @@ import (
 	"strconv"
 )
 
-func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
+func GetUserInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	paramUserID := r.URL.Query().Get("userID")
 	if paramUserID == "" {
 		http.Error(w, "", http.StatusBadRequest)
@@ -44,7 +47,10 @@ func GetUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func UpdateUserInfo(userID uint64, w http.ResponseWriter, r *http.Request) {
+func UpdateUserInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	{
 		displayName := r.URL.Query().Get("displayName")
 		if displayName != "" {

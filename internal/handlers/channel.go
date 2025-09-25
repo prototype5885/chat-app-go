@@ -10,7 +10,10 @@ import (
 	"strconv"
 )
 
-func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
+func CreateChannel(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
@@ -63,7 +66,10 @@ func CreateChannel(userID uint64, w http.ResponseWriter, r *http.Request) {
 
 }
 
-func GetChannelList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
+func GetChannelList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)

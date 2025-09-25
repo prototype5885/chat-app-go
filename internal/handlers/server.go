@@ -11,7 +11,10 @@ import (
 	"strconv"
 )
 
-func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
+func CreateServer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	serverID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
@@ -61,7 +64,11 @@ func CreateServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *http.Request) {
+func GetServerList(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+
 	rows, err := db.Query("SELECT s.* FROM servers s JOIN server_members m ON s.id = m.server_id WHERE m.user_id = ?", userID)
 	if err != nil {
 		sugar.Error(err)
@@ -115,7 +122,10 @@ func GetServerList(userID uint64, sessionID uint64, w http.ResponseWriter, r *ht
 	}
 }
 
-func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
+func DeleteServer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
@@ -137,7 +147,10 @@ func DeleteServer(userID uint64, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RenameServer(userID uint64, w http.ResponseWriter, r *http.Request) {
+func RenameServer(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := ctx.Value(UserIDKeyType{}).(uint64)
+
 	paramServerID := r.URL.Query().Get("serverID")
 	if paramServerID == "" {
 		http.Error(w, "No server ID was specified for rename", http.StatusBadRequest)
