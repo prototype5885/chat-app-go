@@ -50,7 +50,6 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request) {
 func UpdateUserInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(UserIDKeyType{}).(uint64)
-
 	{
 		displayName := r.URL.Query().Get("displayName")
 		if displayName != "" {
@@ -74,5 +73,4 @@ func UpdateUserInfo(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
 }

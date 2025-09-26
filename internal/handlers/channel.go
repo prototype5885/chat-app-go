@@ -85,15 +85,12 @@ func GetChannelList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() {
-		err := rows.Close()
-		if err != nil {
+		if err := rows.Close(); err != nil {
 			sugar.Error(err)
-			return
 		}
 	}()
 
 	channels := []models.Channel{}
-
 	for rows.Next() {
 		var channel models.Channel
 

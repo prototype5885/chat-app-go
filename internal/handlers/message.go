@@ -101,15 +101,12 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		err := rows.Close()
-		if err != nil {
+		if err := rows.Close(); err != nil {
 			sugar.Error(err)
-			return
 		}
 	}()
 
 	messages := []models.Message{}
-
 	for rows.Next() {
 		var msg models.Message
 

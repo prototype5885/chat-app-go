@@ -37,14 +37,12 @@ func GetMemberList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		err := rows.Close()
-		if err != nil {
+		if err := rows.Close(); err != nil {
 			sugar.Error(err)
-			return
 		}
 	}()
 
-	var users []models.User
+	users := []models.User{}
 	for rows.Next() {
 		var user models.User
 		err := rows.Scan(&user.ID, &user.DisplayName, &user.Picture)

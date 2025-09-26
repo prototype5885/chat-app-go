@@ -77,15 +77,12 @@ func GetServerList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		err := rows.Close()
-		if err != nil {
+		if err := rows.Close(); err != nil {
 			sugar.Error(err)
-			return
 		}
 	}()
 
 	servers := []models.Server{}
-
 	for rows.Next() {
 		var server models.Server
 
