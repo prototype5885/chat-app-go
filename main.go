@@ -19,6 +19,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/redis/go-redis/v9"
+	_ "modernc.org/sqlite"
 
 	"go.uber.org/zap"
 )

@@ -11,8 +11,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
-
-	_ "modernc.org/sqlite"
 )
 
 var sugar *zap.SugaredLogger
