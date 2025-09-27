@@ -110,7 +110,20 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 }
 
 func setupTables(db *sql.DB) error {
-	_, err := db.Exec(`
+	var err error
+
+	_, err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS testusers (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name VARCHAR(64),
+				email VARCHAR(64)
+			);
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
 			CREATE TABLE IF NOT EXISTS users (
 				id BIGINT UNSIGNED PRIMARY KEY,
 				email VARCHAR(64) NOT NULL UNIQUE,
