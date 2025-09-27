@@ -29,7 +29,12 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 			return db, err
 		}
 
+		// these next 2 extremely speed up performance of sqlite
 		if _, err = db.Exec("PRAGMA journal_mode = WAL"); err != nil {
+			return db, err
+		}
+
+		if _, err = db.Exec("PRAGMA synchronous = NORMAL"); err != nil {
 			return db, err
 		}
 	} else {
