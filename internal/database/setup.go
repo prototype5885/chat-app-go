@@ -6,6 +6,64 @@ import (
 	"fmt"
 )
 
+func setPragmaValues(db *sql.DB) error {
+	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return err
+	}
+
+	// these next 2 extremely speed up performance of sqlite
+	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
+		return err
+	}
+
+	if _, err := db.Exec("PRAGMA synchronous = normal"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readPragmaValues(db *sql.DB) error {
+	var foreignKeysValue bool
+	err := db.QueryRow("PRAGMA foreign_keys").Scan(&foreignKeysValue)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("sqlite PRAGMA foreign_keys: %t\n", foreignKeysValue)
+
+	var journalModeValue string
+	err = db.QueryRow("PRAGMA journal_mode").Scan(&journalModeValue)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("sqlite PRAGMA journal_mode: %s\n", journalModeValue)
+
+	var synchronousValue int
+
+	err = db.QueryRow("PRAGMA synchronous").Scan(&synchronousValue)
+	if err != nil {
+		return err
+	}
+
+	var synchronousValueStr string
+	switch synchronousValue {
+	case 0:
+		synchronousValueStr = "off"
+	case 1:
+		synchronousValueStr = "normal"
+	case 2:
+		synchronousValueStr = "full"
+	case 3:
+		synchronousValueStr = "extra"
+	default:
+		return fmt.Errorf("synchronous value is unsupported")
+	}
+
+	fmt.Printf("sqlite PRAGMA synchronous: %s\n", synchronousValueStr)
+
+	return nil
+}
+
 func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 	if cfg.SelfContained {
 		fmt.Println("Connecting to database sqlite...")
@@ -25,16 +83,13 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 		// there can be sqlite busy errors if this is not set to 1
 		db.SetMaxOpenConns(1)
 
-		if _, err = db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		err = setPragmaValues(db)
+		if err != nil {
 			return db, err
 		}
 
-		// these next 2 extremely speed up performance of sqlite
-		if _, err = db.Exec("PRAGMA journal_mode = WAL"); err != nil {
-			return db, err
-		}
-
-		if _, err = db.Exec("PRAGMA synchronous = NORMAL"); err != nil {
+		err = readPragmaValues(db)
+		if err != nil {
 			return db, err
 		}
 	} else {
