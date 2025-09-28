@@ -18,8 +18,8 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
-	_ "modernc.org/sqlite"
 
 	"go.uber.org/zap"
 )

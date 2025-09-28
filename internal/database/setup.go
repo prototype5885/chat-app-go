@@ -75,7 +75,7 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 	var err error
 
 	if cfg.SelfContained {
-		db, err = sql.Open("sqlite", "./database.db")
+		db, err = sql.Open("sqlite3", "./database.db")
 		if err != nil {
 			return db, err
 		}
