@@ -6,14 +6,13 @@ import (
 	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
 	"chatapp-backend/internal/snowflake"
+	"chatapp-backend/internal/validator"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -68,11 +67,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
-	var registerErrors = make(map[string]string)
-
 	type Registration struct {
-		Email           string `json:"email" validate:"email"`
-		Password        string `json:"password" validate:"eqfield=ConfirmPassword,min=6"`
+		Email           string `json:"email"`
+		Password        string `json:"password"`
 		ConfirmPassword string `json:"confirmPassword"`
 	}
 
@@ -84,28 +81,22 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = validate.Struct(registration)
-	if err != nil {
-		var validateErrs validator.ValidationErrors
-		if errors.As(err, &validateErrs) {
-			for _, e := range validateErrs {
-				registerErrors[e.Field()] = e.Tag()
-			}
-		} else {
-			sugar.Error(err)
-			http.Error(w, "", http.StatusInternalServerError)
+	{
+		err := validator.Email(registration.Email)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// sends back 400 with the form field errors
-		w.WriteHeader(http.StatusBadRequest)
-		encodeErr := json.NewEncoder(w).Encode(registerErrors)
-		if encodeErr != nil {
-			sugar.Error(err)
-			http.Error(w, "", http.StatusInternalServerError)
+		if registration.Password != registration.ConfirmPassword {
+			http.Error(w, "passwords_dont_match", http.StatusBadRequest)
 			return
 		}
-		return
+
+		err = validator.Password(registration.Password)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
 	}
 
 	userID, err := snowflake.Generate()

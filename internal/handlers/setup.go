@@ -9,20 +9,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )
 
 var sugar *zap.SugaredLogger
 var db *sql.DB
 
-var validate *validator.Validate
-
 func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
 	sugar = _sugar
 	db = _db
-
-	validate = validator.New(validator.WithRequiredStructEnabled())
 
 	r := chi.NewRouter()
 	// mux.Use(middleware.RequestID)
