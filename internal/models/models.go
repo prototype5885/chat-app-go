@@ -36,6 +36,7 @@ type Message struct {
 type ConfigFile struct {
 	Address           string
 	Port              string
+	BehindNginx       bool
 	TlsCert           string
 	TlsKey            string
 	PrintHttpRequests bool

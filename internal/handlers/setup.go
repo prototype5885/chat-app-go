@@ -80,10 +80,17 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 		})
 	})
 
-	// r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-	// r.Handle("/*", http.FileServer(http.Dir("./public/static")))
+	var websocketPath string
 
-	r.With(UserVerifier).Get("/ws/", HandleWebSocket)
+	if cfg.BehindNginx {
+		websocketPath = "/ws/"
+	} else {
+		websocketPath = "/ws"
+		r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+		r.Handle("/*", http.FileServer(http.Dir("./public/static")))
+	}
+
+	r.With(UserVerifier).Get(websocketPath, HandleWebSocket)
 
 	address := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
 
