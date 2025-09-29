@@ -20,7 +20,7 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 	db = _db
 
 	r := chi.NewRouter()
-	r.Use(AllowCors)
+	// r.Use(AllowCors)
 	// mux.Use(middleware.RequestID)
 	// mux.Use(middleware.RealIP)
 	if cfg.PrintHttpRequests {
@@ -80,10 +80,10 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 		})
 	})
 
-	r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-	r.Handle("/*", http.FileServer(http.Dir("./public/static")))
+	// r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+	// r.Handle("/*", http.FileServer(http.Dir("./public/static")))
 
-	r.With(UserVerifier).Get("/ws", HandleWebSocket)
+	r.With(UserVerifier).Get("/ws/", HandleWebSocket)
 
 	address := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
 
