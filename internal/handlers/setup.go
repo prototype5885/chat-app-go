@@ -87,7 +87,7 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 	} else {
 		websocketPath = "/ws"
 		r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-		r.Handle("/*", http.FileServer(http.Dir("./public/static")))
+		r.Handle("/*", http.FileServer(http.Dir("./static")))
 	}
 
 	r.With(UserVerifier).Get(websocketPath, HandleWebSocket)

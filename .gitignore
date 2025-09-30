@@ -31,4 +31,5 @@ config.json
 *.db-wal
 
 public/
+static/
 chatapp-backend
