@@ -34,7 +34,6 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 
 	r.Route("/api", func(api chi.Router) {
 		api.Get("/test", Test)
-		api.Post("/testSqlite", TestSqlite)
 
 		api.Route("/auth", func(r chi.Router) {
 			r.Post("/login", Login)
