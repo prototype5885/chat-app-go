@@ -78,6 +78,18 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var messageID uint64
+	messageIDstr := r.URL.Query().Get("messageID")
+	if messageIDstr == "" {
+		messageID = 0
+	} else {
+		messageID, err = strconv.ParseUint(messageIDstr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid message ID", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// TODO check if user is member of channel
 
 	query := `
@@ -90,10 +102,13 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 		JOIN
 			users ON messages.user_id = users.id
 		WHERE
-			messages.channel_ID = ?
+			messages.channel_ID = ? AND (messages.id < ? OR ? = 0)
+		ORDER BY
+			messages.id DESC
+		LIMIT 50;
 	`
 
-	rows, err := db.Query(query, channelID)
+	rows, err := db.Query(query, channelID, messageID, messageID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
