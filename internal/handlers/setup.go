@@ -19,6 +19,13 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 	sugar = _sugar
 	db = _db
 
+	// this fixes problem serving flutter web wasm,
+	// as by default it sends .mjs as text/plain
+	err := mime.AddExtensionType(".mjs", "application/javascript")
+	if err != nil {
+		log.Fatalf("Failed to add MIME type: %v", err)
+	}
+
 	r := chi.NewRouter()
 	// r.Use(AllowCors)
 	// mux.Use(middleware.RequestID)
