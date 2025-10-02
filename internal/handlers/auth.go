@@ -175,7 +175,7 @@ func NewSession(w http.ResponseWriter, r *http.Request) {
 		Value:    fmt.Sprint(sessionID),
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   isHttps,
 		SameSite: http.SameSiteLaxMode,
 	}
 	http.SetCookie(w, &sessionCookie)

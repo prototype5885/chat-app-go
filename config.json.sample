@@ -4,6 +4,7 @@
     "BehindNginx": false,
     "TlsCert": "", // uses http if empty
     "TlsKey": "", // uses http if empty
+    "Cors": false,
     "PrintHttpRequests": true, // print http requests to terminal, no logging to file
     "JwtSecret": "secret any text",
     "SnowflakeWorkerID": 0,

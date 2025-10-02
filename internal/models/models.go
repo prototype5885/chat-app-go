@@ -39,6 +39,7 @@ type ConfigFile struct {
 	BehindNginx       bool
 	TlsCert           string
 	TlsKey            string
+	Cors              bool
 	PrintHttpRequests bool
 	JwtSecret         string
 	SnowflakeWorkerID uint64

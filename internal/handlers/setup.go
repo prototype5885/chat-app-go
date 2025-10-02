@@ -4,6 +4,7 @@ import (
 	"chatapp-backend/internal/models"
 	"database/sql"
 	"fmt"
+	"mime"
 	"net/http"
 	"time"
 
@@ -14,8 +15,10 @@ import (
 
 var sugar *zap.SugaredLogger
 var db *sql.DB
+var isHttps bool
 
-func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
+func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
+	isHttps = _isHttps
 	sugar = _sugar
 	db = _db
 
@@ -23,11 +26,15 @@ func Setup(isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db 
 	// as by default it sends .mjs as text/plain
 	err := mime.AddExtensionType(".mjs", "application/javascript")
 	if err != nil {
-		log.Fatalf("Failed to add MIME type: %v", err)
+		return err
 	}
 
 	r := chi.NewRouter()
-	// r.Use(AllowCors)
+
+	if cfg.Cors {
+		r.Use(AllowCors)
+	}
+
 	// mux.Use(middleware.RequestID)
 	// mux.Use(middleware.RealIP)
 	if cfg.PrintHttpRequests {

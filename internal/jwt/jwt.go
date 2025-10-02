@@ -15,9 +15,11 @@ type UserToken struct {
 }
 
 var jwtSecret []byte
+var isHttps bool
 
-func Setup(_key string) {
+func Setup(_key string, _isHttps bool) {
 	jwtSecret = []byte(_key)
+	isHttps = _isHttps
 }
 
 func CreateToken(rememberMe bool, userId uint64) (http.Cookie, error) {
@@ -50,7 +52,7 @@ func CreateToken(rememberMe bool, userId uint64) (http.Cookie, error) {
 		Value:    tokenString,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   isHttps,
 		SameSite: http.SameSiteLaxMode,
 	}
 

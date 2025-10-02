@@ -145,7 +145,7 @@ func main() {
 
 	email.Setup(cfg, fullAddress)
 
-	jwt.Setup(cfg.JwtSecret)
+	jwt.Setup(cfg.JwtSecret, isHttps)
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
