@@ -41,6 +41,8 @@ type ConfigFile struct {
 	TlsKey            string
 	Cors              bool
 	PrintHttpRequests bool
+	LogToFile         bool
+	LogLevel          string
 	JwtSecret         string
 	SnowflakeWorkerID uint64
 	SelfContained     bool

@@ -2,13 +2,15 @@
     "Address": "127.0.0.1",
     "Port": "5083",
     "BehindNginx": false,
-    "TlsCert": "", // uses http if empty
-    "TlsKey": "", // uses http if empty
+    "TlsCert": "", #uses http if empty
+    "TlsKey": "", #uses http if empty
     "Cors": false,
-    "PrintHttpRequests": true, // print http requests to terminal, no logging to file
+    "PrintHttpRequests": true, #print http requests to terminal, no logging to file
+    "LogToFile": true,
+    "LogLevel": "info", #info, debug
     "JwtSecret": "secret any text",
     "SnowflakeWorkerID": 0,
-    "SelfContained": true, // uses sqlite instead of mysql/mariadb, caches locally instead of using redis
+    "SelfContained": true, #uses sqlite instead of mysql/mariadb, caches locally instead of using redis
     "DbUser": "root",
     "DbPassword": "password",
     "DbAddress": "127.0.0.1",

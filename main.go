@@ -22,12 +22,29 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-func setupLogger() (*zap.SugaredLogger, error) {
+func setupLogger(cfg *models.ConfigFile) (*zap.SugaredLogger, error) {
+	var level zapcore.Level
+	switch cfg.LogLevel {
+	case "info":
+		level = zap.InfoLevel
+	case "debug":
+		level = zap.DebugLevel
+	default:
+		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
+	}
+
+	outputPaths := []string{"chat-app.log"}
+
+	if cfg.LogToFile {
+		outputPaths = append(outputPaths, "stdout")
+	}
+
 	config := zap.NewProductionConfig()
-	config.OutputPaths = []string{"app.log", "stdout"}
-	config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	config.OutputPaths = outputPaths
+	config.Level = zap.NewAtomicLevelAt(level)
 	logger, err := config.Build()
 	if err != nil {
 		return nil, err
@@ -87,8 +104,15 @@ func setupRedis() (*redis.Client, error) {
 }
 
 func main() {
+	fmt.Println("Reading config file...")
+	cfg, err := readConfigFile()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	fmt.Println("Setting up logger...")
-	sugar, err := setupLogger()
+	sugar, err := setupLogger(cfg)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -96,12 +120,6 @@ func main() {
 
 	fmt.Println("Looking for ffmpeg...")
 	_, err = exec.LookPath("ffmpeg")
-	if err != nil {
-		sugar.Fatal(err)
-	}
-
-	fmt.Println("Reading config file...")
-	cfg, err := readConfigFile()
 	if err != nil {
 		sugar.Fatal(err)
 	}
