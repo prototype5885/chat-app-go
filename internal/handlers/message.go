@@ -105,7 +105,7 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 			messages.channel_ID = ? AND (messages.id < ? OR ? = 0)
 		ORDER BY
 			messages.id DESC
-		LIMIT 50;
+		LIMIT 25;
 	`
 
 	rows, err := db.Query(query, channelID, messageID, messageID)
