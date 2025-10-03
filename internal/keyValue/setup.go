@@ -40,9 +40,9 @@ func checkForLocalExpiredKeys() {
 	for range ticker.C {
 		mutex.Lock()
 		for key, v := range hashmap {
-			fmt.Printf("Key: %s, Value: %s, Expires in: %s\n", key, v.value, time.Until(v.expires).Round(time.Second))
+			// fmt.Printf("Key: %s, Value: %s, Expires in: %s\n", key, v.value, time.Until(v.expires).Round(time.Second))
 			if v.expires.Before(time.Now()) {
-				sugar.Debugf("Key %s expired, deleting...", key)
+				// sugar.Debugf("Key %s expired, deleting...", key)
 				delete(hashmap, key)
 			}
 		}
