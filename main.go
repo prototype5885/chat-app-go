@@ -36,10 +36,10 @@ func setupLogger(cfg *models.ConfigFile) (*zap.SugaredLogger, error) {
 		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
 	}
 
-	outputPaths := []string{"chat-app.log"}
+	outputPaths := []string{"stdout"}
 
 	if cfg.LogToFile {
-		outputPaths = append(outputPaths, "stdout")
+		outputPaths = append(outputPaths, "chat-app-log")
 	}
 
 	config := zap.NewProductionConfig()

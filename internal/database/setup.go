@@ -55,16 +55,11 @@ func checkPragmaValues(db *sql.DB) error {
 }
 
 func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
-	if cfg.SelfContained {
-		fmt.Println("Connecting to database sqlite...")
-	} else {
-		fmt.Println("Connecting to database mysql/mariadb...")
-	}
-
 	var db *sql.DB
 	var err error
 
 	if cfg.SelfContained {
+		fmt.Println("Connecting to database sqlite...")
 		db, err = sql.Open("sqlite3", "./database.db")
 		if err != nil {
 			return db, err
@@ -83,6 +78,7 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 			return db, err
 		}
 	} else {
+		fmt.Println("Connecting to database mysql/mariadb...")
 		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase))
 		if err != nil {
 			return db, err
