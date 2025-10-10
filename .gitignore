@@ -33,3 +33,4 @@ config.json
 public/
 static/
 chatapp-backend
+.idea/

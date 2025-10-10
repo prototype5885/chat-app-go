@@ -9,6 +9,7 @@ import (
 	"chatapp-backend/internal/validator"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -39,7 +40,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	var result Result
 	err = db.QueryRow("SELECT id, password FROM users WHERE email = ?", login.Email).Scan(&result.userID, &result.password)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			sugar.Debug(err)
 			http.Error(w, "", http.StatusUnauthorized)
 		} else {
@@ -160,7 +161,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewSession(w http.ResponseWriter, r *http.Request) {
+func NewSession(w http.ResponseWriter, _ *http.Request) {
 	sessionID, err := snowflake.Generate()
 	if err != nil {
 		sugar.Error(err)
