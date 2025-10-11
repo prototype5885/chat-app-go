@@ -4,7 +4,6 @@ import (
 	"chatapp-backend/internal/globals"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
-	"chatapp-backend/internal/snowflake"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -30,12 +29,7 @@ func CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 	// TODO check if user is member of channel
 
-	messageID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	messageID := snowflakeNode.Generate().Int64()
 
 	msg := models.Message{
 		ID:          messageID,

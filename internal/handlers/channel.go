@@ -4,7 +4,6 @@ import (
 	"chatapp-backend/internal/globals"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
-	"chatapp-backend/internal/snowflake"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -37,12 +36,7 @@ func CreateChannel(w http.ResponseWriter, r *http.Request) {
 		channelName = "New Channel"
 	}
 
-	channelID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	channelID := snowflakeNode.Generate().Int64()
 
 	channel := models.Channel{
 		ID:       channelID,

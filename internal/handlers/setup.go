@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"go.uber.org/zap"
@@ -16,11 +17,13 @@ import (
 var sugar *zap.SugaredLogger
 var db *sql.DB
 var isHttps bool
+var snowflakeNode *snowflake.Node
 
-func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB) error {
+func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db *sql.DB, _snowflakeNode *snowflake.Node) error {
 	isHttps = _isHttps
 	sugar = _sugar
 	db = _db
+	snowflakeNode = _snowflakeNode
 
 	// this fixes problem serving flutter web wasm,
 	// as by default it sends .mjs as text/plain

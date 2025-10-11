@@ -5,7 +5,6 @@ import (
 	"chatapp-backend/internal/globals"
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
-	"chatapp-backend/internal/snowflake"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -15,12 +14,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := ctx.Value(UserIDKeyType{}).(int64)
 
-	serverID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	serverID := snowflakeNode.Generate().Int64()
 
 	serverName := r.URL.Query().Get("name")
 	if serverName == "" {

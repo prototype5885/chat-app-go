@@ -9,14 +9,13 @@ import (
 	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
 	"context"
-	"os/exec"
-
-	"chatapp-backend/internal/snowflake"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 
+	"github.com/bwmarrin/snowflake"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
@@ -145,12 +144,14 @@ func main() {
 
 	hub.Setup(sugar, redisClient, cfg.SelfContained)
 
-	err = snowflake.Setup(cfg.SnowflakeWorkerID)
+	fmt.Printf("Setting up snowflake ID generator using node number %d...\n", cfg.SnowflakeWorkerID)
+	snowflake.Epoch = 1420070400000 // discord epoch to make date extracting compatible
+	snowflakeNode, err := snowflake.NewNode(cfg.SnowflakeWorkerID)
 	if err != nil {
 		sugar.Fatal(err)
 	}
 
-	isHttps := (cfg.TlsCert != "" && cfg.TlsKey != "")
+	isHttps := cfg.TlsCert != "" && cfg.TlsKey != ""
 
 	var httpProtocol string
 	if isHttps {
@@ -167,7 +168,7 @@ func main() {
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
-	err = handlers.Setup(isHttps, cfg, sugar, db)
+	err = handlers.Setup(isHttps, cfg, sugar, db, snowflakeNode)
 	if err != nil {
 		sugar.Fatal(err)
 	}

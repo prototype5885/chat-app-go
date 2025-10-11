@@ -5,7 +5,6 @@ import (
 	"chatapp-backend/internal/jwt"
 	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
-	"chatapp-backend/internal/snowflake"
 	"chatapp-backend/internal/validator"
 	"database/sql"
 	"encoding/json"
@@ -100,12 +99,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	userID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	userID := snowflakeNode.Generate().Int64()
 
 	username := fmt.Sprintf("%d", userID)    // temporary
 	displayName := fmt.Sprintf("%d", userID) // temporary
@@ -162,12 +156,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func NewSession(w http.ResponseWriter, _ *http.Request) {
-	sessionID, err := snowflake.Generate()
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	sessionID := snowflakeNode.Generate().Int64()
 
 	// TODO possibly encrypt session id with user id together
 
