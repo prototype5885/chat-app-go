@@ -4,6 +4,7 @@ import (
 	"chatapp-backend/internal/fileHandlers"
 	"chatapp-backend/internal/models"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -62,10 +63,10 @@ func UpdateUserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	{
 		pictureName, err := fileHandlers.HandleAvatarPicture(r)
-		if err != nil && err != http.ErrMissingFile {
+		if err != nil && !errors.Is(err, http.ErrMissingFile) {
 			sugar.Error(err)
 			http.Error(w, "", http.StatusBadRequest)
-		} else if err != http.ErrMissingFile {
+		} else if !errors.Is(err, http.ErrMissingFile) {
 			_, err := db.Exec("UPDATE users SET picture = $1 WHERE id = $2", pictureName, userID)
 			if err != nil {
 				sugar.Error(err)

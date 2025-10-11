@@ -155,7 +155,10 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 				if pubsub == nil && !ok {
 					return
 				}
-				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err != nil {
+					return
+				}
 				err = conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
 				if err != nil {
 					sugar.Error(err)
@@ -165,15 +168,23 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 				if !ok {
 					return
 				}
-				client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err != nil {
+					sugar.Error(err)
+					return
+				}
 				err = conn.WriteMessage(websocket.TextMessage, []byte(msg))
 				if err != nil {
 					sugar.Error(err)
 					return
 				}
 			case <-ticker.C:
-				conn.SetWriteDeadline(time.Now().Add(writeWait))
-				err := conn.WriteMessage(websocket.PingMessage, nil)
+				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err != nil {
+					sugar.Error(err)
+					return
+				}
+				err = conn.WriteMessage(websocket.PingMessage, nil)
 				if err != nil {
 					sugar.Error(err)
 					return
@@ -185,9 +196,20 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 	// listening to incoming messages directly from client
 	for {
 		conn.SetReadLimit(maxMessageSize)
-		conn.SetReadDeadline(time.Now().Add(pongWaitTime))
-		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWaitTime)); return nil })
-		_, _, err := conn.ReadMessage()
+		err := conn.SetReadDeadline(time.Now().Add(pongWaitTime))
+		if err != nil {
+			sugar.Error(err)
+			break
+		}
+		conn.SetPongHandler(func(string) error {
+			err := conn.SetReadDeadline(time.Now().Add(pongWaitTime))
+			if err != nil {
+				sugar.Error(err)
+				return err
+			}
+			return nil
+		})
+		_, _, err = conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				sugar.Error(err)

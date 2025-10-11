@@ -6,6 +6,7 @@ import (
 	"chatapp-backend/internal/hub"
 	"chatapp-backend/internal/models"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 )
@@ -22,7 +23,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	picPath, err := fileHandlers.HandleAvatarPicture(r)
-	if err != nil && err != http.ErrMissingFile {
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusBadRequest)
 		return
@@ -76,7 +77,7 @@ func GetServerList(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	servers := []models.Server{}
+	var servers []models.Server
 	for rows.Next() {
 		var server models.Server
 

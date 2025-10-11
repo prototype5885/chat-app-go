@@ -71,7 +71,7 @@ func VerifyToken(tokenString string) (UserToken, error) {
 		return UserToken{}, err
 	} else if claims, ok := token.Claims.(*UserToken); ok {
 		return *claims, nil
-	} else {
-		return UserToken{}, errors.New("invalid token")
 	}
+
+	return UserToken{}, errors.New("invalid token")
 }

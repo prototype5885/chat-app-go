@@ -42,7 +42,7 @@ func GetMemberList(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	users := []models.User{}
+	var users []models.User
 	for rows.Next() {
 		var user models.User
 		err := rows.Scan(&user.ID, &user.DisplayName, &user.Picture)

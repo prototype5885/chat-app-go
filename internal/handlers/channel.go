@@ -84,7 +84,7 @@ func GetChannelList(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	channels := []models.Channel{}
+	var channels []models.Channel
 	for rows.Next() {
 		var channel models.Channel
 
