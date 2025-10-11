@@ -11,6 +11,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"go.uber.org/zap"
 )
 
@@ -34,6 +35,8 @@ func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db
 
 	r := chi.NewRouter()
 
+	r.Use(httprate.LimitByIP(100, time.Minute))
+
 	if cfg.Cors {
 		r.Use(AllowCors)
 	}
@@ -45,7 +48,7 @@ func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db
 	}
 
 	r.Use(middleware.Recoverer)
-	// mux.Use(middleware.Compress(5))
+	//r.Use(middleware.Compress(5))
 
 	r.Use(middleware.Timeout(60 * time.Second))
 
@@ -53,37 +56,55 @@ func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db
 		api.Get("/test", Test)
 
 		api.Route("/auth", func(r chi.Router) {
-			r.Post("/login", Login)
-			r.Post("/register", Register)
+			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(5, time.Minute))
+				r.Post("/login", Login)
+				r.Post("/register", Register)
+			})
 			r.With(UserVerifier).Get("/newSession", NewSession)
 			r.With(UserVerifier).Get("/isLoggedIn", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 		})
 
 		api.Route("/user", func(r chi.Router) {
 			r.Use(UserVerifier)
+			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(10, time.Minute))
+				r.Post("/update", UpdateUserInfo)
+			})
 			r.Get("/fetch", GetUserInfo)
-			r.Post("/update", UpdateUserInfo)
 		})
 
 		api.Route("/server", func(r chi.Router) {
 			r.Use(UserVerifier)
-			r.Post("/create", CreateServer)
+			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(10, time.Minute))
+				r.Post("/create", CreateServer)
+				r.Post("/delete", DeleteServer)
+				r.Post("/rename", RenameServer)
+			})
 			r.With(SessionVerifier).Get("/fetch", GetServerList)
-			r.Post("/delete", DeleteServer)
-			r.Post("/rename", RenameServer)
 		})
 
 		api.Route("/channel", func(r chi.Router) {
 			r.Use(UserVerifier)
-			r.Post("/create", CreateChannel)
+			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(10, time.Second*10))
+				r.Post("/create", CreateChannel)
+				r.Post("/delete", nil)
+				r.Post("/rename", nil)
+			})
 			r.With(SessionVerifier).Get("/fetch", GetChannelList)
 		})
 
 		api.Route("/message", func(r chi.Router) {
 			r.Use(UserVerifier)
-			r.Post("/create", CreateMessage)
+			r.Group(func(r chi.Router) {
+				r.Use(httprate.LimitByIP(10, time.Second*10))
+				r.Post("/create", CreateMessage)
+				r.Post("/delete", DeleteMessage)
+				r.Post("/edit", nil)
+			})
 			r.With(SessionVerifier).Get("/fetch", GetMessageList)
-			r.Post("/delete", DeleteMessage)
 		})
 
 		api.Route("/members", func(r chi.Router) {
