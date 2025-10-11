@@ -77,7 +77,7 @@ func GetServerList(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var servers []models.Server
+	servers := []models.Server{}
 	for rows.Next() {
 		var server models.Server
 

@@ -120,7 +120,7 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var messages []models.Message
+	messages := []models.Message{}
 	for rows.Next() {
 		var msg models.Message
 
