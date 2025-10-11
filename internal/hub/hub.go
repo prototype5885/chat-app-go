@@ -35,18 +35,18 @@ const (
 )
 
 type Client struct {
-	UserID           uint64
+	UserID           int64
 	Conn             *websocket.Conn
-	SessionID        uint64
-	CurrentServerID  uint64
-	CurrentChannelID uint64
+	SessionID        int64
+	CurrentServerID  int64
+	CurrentChannelID int64
 	PubSub           *redis.PubSub
 	WsChannel        chan string
 	Ctx              context.Context
 	mutex            sync.Mutex
 }
 
-var clients = make(map[uint64]*Client)
+var clients = make(map[int64]*Client)
 var clientsMutex sync.RWMutex
 
 var sugar *zap.SugaredLogger
@@ -61,7 +61,7 @@ func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained
 	selfContained = _selfContained
 }
 
-func HandleClient(w http.ResponseWriter, r *http.Request, userID uint64) {
+func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 	sugar.Debugf("Connecting user ID [%d] to WebSocket", userID)
 
 	sessionCookie, err := r.Cookie("session")
@@ -76,7 +76,7 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID uint64) {
 		return
 	}
 
-	sessionID, err := strconv.ParseUint(sessionCookie.Value, 10, 64)
+	sessionID, err := strconv.ParseInt(sessionCookie.Value, 10, 64)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "Session cookie is in improper format", http.StatusBadRequest)
@@ -199,7 +199,7 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID uint64) {
 	deleteClient(sessionID)
 }
 
-func setClient(sessionID uint64, client *Client) {
+func setClient(sessionID int64, client *Client) {
 	sugar.Debugf("Adding user ID [%d] to clients as session ID [%d]", client.UserID, sessionID)
 	clientsMutex.Lock()
 	defer clientsMutex.Unlock()
@@ -207,7 +207,7 @@ func setClient(sessionID uint64, client *Client) {
 	clients[sessionID] = client
 }
 
-func deleteClient(sessionID uint64) {
+func deleteClient(sessionID int64) {
 	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
 	if selfContained {
 		unsubscribeFromAllLocalPubSub(sessionID)
@@ -219,7 +219,7 @@ func deleteClient(sessionID uint64) {
 	delete(clients, sessionID)
 }
 
-func GetClient(sessionID uint64) (*Client, bool) {
+func GetClient(sessionID int64) (*Client, bool) {
 	clientsMutex.RLock()
 	defer clientsMutex.RUnlock()
 

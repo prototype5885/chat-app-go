@@ -45,7 +45,7 @@ func SessionVerifier(next http.Handler) http.Handler {
 			return
 		}
 
-		sessionID, err := strconv.ParseUint(sessionCookie.Value, 10, 64)
+		sessionID, err := strconv.ParseInt(sessionCookie.Value, 10, 64)
 		if err != nil {
 			sugar.Error(err)
 			http.Error(w, "Session cookie is in improper format", http.StatusBadRequest)
@@ -105,7 +105,7 @@ func UserVerifier(next http.Handler) http.Handler {
 		}
 
 		if value == "" { // user isn't cached
-			dbErr := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)", userToken.UserID).Scan(&userFound)
+			dbErr := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)", userToken.UserID).Scan(&userFound)
 			if dbErr != nil {
 				sugar.Error(dbErr)
 				http.Error(w, "", http.StatusInternalServerError)

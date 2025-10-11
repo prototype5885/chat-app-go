@@ -1,7 +1,7 @@
 package models
 
 type User struct {
-	ID          uint64 `json:"id,string,omitempty"`
+	ID          int64  `json:"id,string,omitempty"`
 	Email       string `json:"email,omitempty"`
 	UserName    string `json:"userName,omitempty"`
 	DisplayName string `json:"displayName"`
@@ -10,23 +10,23 @@ type User struct {
 }
 
 type Server struct {
-	ID      uint64 `json:"id,string"`
-	OwnerID uint64 `json:"ownerID,string"`
+	ID      int64  `json:"id,string"`
+	OwnerID int64  `json:"ownerID,string"`
 	Name    string `json:"name"`
 	Picture string `json:"picture"`
 	Banner  string `json:"banner"`
 }
 
 type Channel struct {
-	ID       uint64 `json:"id,string"`
-	ServerID uint64 `json:"serverID,string"`
+	ID       int64  `json:"id,string"`
+	ServerID int64  `json:"serverID,string"`
 	Name     string `json:"name"`
 }
 
 type Message struct {
-	ID          uint64 `json:"id,string"`
-	ChannelID   uint64 `json:"channelID,string"`
-	UserID      uint64 `json:"userID,string"`
+	ID          int64  `json:"id,string"`
+	ChannelID   int64  `json:"channelID,string"`
+	UserID      int64  `json:"userID,string"`
 	Message     string `json:"message"`
 	Attachments string `json:"attachments"`
 	Edited      bool   `json:"edited"`
@@ -44,7 +44,7 @@ type ConfigFile struct {
 	LogToFile         bool
 	LogLevel          string
 	JwtSecret         string
-	SnowflakeWorkerID uint64
+	SnowflakeWorkerID int64
 	SelfContained     bool
 	DbUser            string
 	DbPassword        string

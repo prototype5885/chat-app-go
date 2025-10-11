@@ -13,7 +13,7 @@ import (
 
 func CreateServer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
 	serverID, err := snowflake.Generate()
 	if err != nil {
@@ -42,7 +42,7 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 		Banner:  "",
 	}
 
-	_, err = db.Exec("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", server.ID, server.OwnerID, server.Name, server.Picture, server.Banner)
+	_, err = db.Exec("INSERT INTO servers (id, owner_id, name, picture, banner) VALUES($1, $2, $3, $4, $5)", server.ID, server.OwnerID, server.Name, server.Picture, server.Banner)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -66,10 +66,10 @@ func CreateServer(w http.ResponseWriter, r *http.Request) {
 
 func GetServerList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
-	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
+	sessionID := ctx.Value(SessionIDKeyType{}).(int64)
 
-	rows, err := db.Query("SELECT s.* FROM servers s JOIN server_members m ON s.id = m.server_id WHERE m.user_id = ?", userID)
+	rows, err := db.Query("SELECT s.id, s.owner_id, s.name, s.picture, s.banner FROM servers s JOIN server_members m ON s.id = m.server_id WHERE m.user_id = $1", userID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -121,15 +121,15 @@ func GetServerList(w http.ResponseWriter, r *http.Request) {
 
 func DeleteServer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
-	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
+	serverID, err := strconv.ParseInt(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM servers WHERE id = ? AND owner_id = ?", serverID, userID)
+	_, err = db.Exec("DELETE FROM servers WHERE id = $1 AND owner_id = $2", serverID, userID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -146,7 +146,7 @@ func DeleteServer(w http.ResponseWriter, r *http.Request) {
 
 func RenameServer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
 	paramServerID := r.URL.Query().Get("serverID")
 	if paramServerID == "" {
@@ -154,7 +154,7 @@ func RenameServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serverID, err := strconv.ParseUint(paramServerID, 10, 64)
+	serverID, err := strconv.ParseInt(paramServerID, 10, 64)
 	if err != nil {
 		http.Error(w, "Server ID specified for rename is not a number", http.StatusBadRequest)
 		return
@@ -166,7 +166,7 @@ func RenameServer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("UPDATE servers SET name = ? WHERE id = ? AND owner_id = ?", name, serverID, userID)
+	_, err = db.Exec("UPDATE servers SET name = $1 WHERE id = $2 AND owner_id = $3", name, serverID, userID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

@@ -8,7 +8,7 @@ import (
 )
 
 func GetMemberList(w http.ResponseWriter, r *http.Request) {
-	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
+	channelID, err := strconv.ParseInt(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
@@ -28,7 +28,7 @@ func GetMemberList(w http.ResponseWriter, r *http.Request) {
 		JOIN 
 			users ON server_members.user_id = users.id
 		WHERE 
-			channels.id = ?
+			channels.id = $1
 		`, channelID)
 	if err != nil {
 		sugar.Error(err)

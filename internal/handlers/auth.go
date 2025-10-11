@@ -33,12 +33,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Result struct {
-		userID   uint64
+		userID   int64
 		password []byte
 	}
 
 	var result Result
-	err = db.QueryRow("SELECT id, password FROM users WHERE email = ?", login.Email).Scan(&result.userID, &result.password)
+	err = db.QueryRow("SELECT id, password FROM users WHERE email = $1", login.Email).Scan(&result.userID, &result.password)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			sugar.Debug(err)

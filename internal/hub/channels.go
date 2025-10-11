@@ -9,9 +9,9 @@ import (
 )
 
 var localPubSubMutex sync.RWMutex
-var localPubSub = make(map[string][]uint64)
+var localPubSub = make(map[string][]int64)
 
-func unsubscribeFromLocalPubSub(channel string, sessionID uint64) {
+func unsubscribeFromLocalPubSub(channel string, sessionID int64) {
 	sessionIDs := localPubSub[channel]
 
 	// this won't run in case channel doesn't exist since length will be 0
@@ -29,7 +29,7 @@ func unsubscribeFromLocalPubSub(channel string, sessionID uint64) {
 	}
 }
 
-func Subscribe(channel uint64, channelType string, sessionID uint64) error {
+func Subscribe(channel int64, channelType string, sessionID int64) error {
 	client, exists := GetClient(sessionID)
 	if !exists {
 		debugText := "redis channel"
@@ -48,7 +48,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 		defer client.mutex.Unlock()
 	}
 
-	unsub := func(oldKey string, sessionID uint64) error {
+	unsub := func(oldKey string, sessionID int64) error {
 		if selfContained {
 			unsubscribeFromLocalPubSub(oldKey, sessionID)
 		} else {
@@ -109,7 +109,7 @@ func Subscribe(channel uint64, channelType string, sessionID uint64) error {
 	return nil
 }
 
-func unsubscribeFromAllLocalPubSub(sessionID uint64) {
+func unsubscribeFromAllLocalPubSub(sessionID int64) {
 	localPubSubMutex.Lock()
 	defer localPubSubMutex.Unlock()
 
@@ -118,7 +118,7 @@ func unsubscribeFromAllLocalPubSub(sessionID uint64) {
 	}
 }
 
-func Emit(messageType string, channelType string, message any, _channel uint64) error {
+func Emit(messageType string, channelType string, message any, _channel int64) error {
 	channel := fmt.Sprintf("%s:%d", channelType, _channel)
 
 	jsonBytes, err := json.Marshal(message)

@@ -78,8 +78,8 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 			return db, err
 		}
 	} else {
-		fmt.Println("Connecting to database mysql/mariadb...")
-		db, err = sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&timeout=10s", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase))
+		fmt.Println("Connecting to database PostgreSQL...")
+		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.DbUser, cfg.DbPassword, cfg.DbAddress, cfg.DbPort, cfg.DbDatabase))
 		if err != nil {
 			return db, err
 		}
@@ -98,18 +98,20 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 func setupTables(db *sql.DB) error {
 	queries := [...]string{`
 			CREATE TABLE IF NOT EXISTS users (
-				id BIGINT UNSIGNED PRIMARY KEY,
+				id BIGINT PRIMARY KEY,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 				email VARCHAR(64) NOT NULL UNIQUE,
 				username VARCHAR(32) NOT NULL UNIQUE,
 				display_name VARCHAR(64) NOT NULL,
 				picture TEXT,
-				password BINARY(60) NOT NULL
+				password CHAR(60) NOT NULL
 			);
 		`,
 		`
 			CREATE TABLE IF NOT EXISTS servers (
-				id BIGINT UNSIGNED PRIMARY KEY,
-				owner_id BIGINT UNSIGNED NOT NULL,
+				id BIGINT PRIMARY KEY,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				owner_id BIGINT NOT NULL,
 				name VARCHAR(64) NOT NULL,
 				picture TEXT,
 				banner TEXT,
@@ -118,9 +120,9 @@ func setupTables(db *sql.DB) error {
 		`,
 		`
 			CREATE TABLE IF NOT EXISTS server_members (
-				server_id BIGINT UNSIGNED NOT NULL,
-				user_id BIGINT UNSIGNED NOT NULL,
-				since TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				server_id BIGINT NOT NULL,
+				user_id BIGINT NOT NULL,
+				since TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				PRIMARY KEY (server_id, user_id),
 				FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
 				FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -128,17 +130,19 @@ func setupTables(db *sql.DB) error {
 		`,
 		`
 			CREATE TABLE IF NOT EXISTS channels (
-				id BIGINT UNSIGNED PRIMARY KEY,
-				server_id BIGINT UNSIGNED NOT NULL,
+				id BIGINT PRIMARY KEY,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				server_id BIGINT NOT NULL,
 				name VARCHAR(32) NOT NULL,
 				FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
 			);
 		`,
 		`
 			CREATE TABLE IF NOT EXISTS messages (
-				id BIGINT UNSIGNED PRIMARY KEY,
-				channel_id BIGINT UNSIGNED NOT NULL,
-				user_id BIGINT UNSIGNED NOT NULL,
+				id BIGINT PRIMARY KEY,
+				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+				channel_id BIGINT NOT NULL,
+				user_id BIGINT NOT NULL,
 				message TEXT NOT NULL,
 				attachments TEXT,
 				edited BOOLEAN NOT NULL,

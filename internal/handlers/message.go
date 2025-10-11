@@ -12,12 +12,12 @@ import (
 
 func CreateMessage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
 	type AddMessageRequest struct {
 		Message   string `json:"message"`
-		ChannelID uint64 `json:"channelID,string"`
-		ReplyID   uint64 `json:"replyID,string"`
+		ChannelID int64  `json:"channelID,string"`
+		ReplyID   int64  `json:"replyID,string"`
 	}
 
 	var messageRequest AddMessageRequest
@@ -46,14 +46,14 @@ func CreateMessage(w http.ResponseWriter, r *http.Request) {
 		Edited:      false,
 	}
 
-	_, err = db.Exec("INSERT INTO messages VALUES(?, ?, ?, ?, ?, ?)", msg.ID, msg.ChannelID, msg.UserID, msg.Message, msg.Attachments, msg.Edited)
+	_, err = db.Exec("INSERT INTO messages (id, channel_id, user_id, message, attachments, edited) VALUES($1, $2, $3, $4, $5, $6)", msg.ID, msg.ChannelID, msg.UserID, msg.Message, msg.Attachments, msg.Edited)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	err = db.QueryRow("SELECT display_name, picture FROM users where id = ?", userID).Scan(&msg.User.DisplayName, &msg.User.Picture)
+	err = db.QueryRow("SELECT display_name, picture FROM users where id = $1", userID).Scan(&msg.User.DisplayName, &msg.User.Picture)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -70,20 +70,20 @@ func CreateMessage(w http.ResponseWriter, r *http.Request) {
 
 func GetMessageList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+	sessionID := ctx.Value(SessionIDKeyType{}).(int64)
 
-	channelID, err := strconv.ParseUint(r.URL.Query().Get("channelID"), 10, 64)
+	channelID, err := strconv.ParseInt(r.URL.Query().Get("channelID"), 10, 64)
 	if err != nil || channelID == 0 {
 		http.Error(w, "Invalid channel ID", http.StatusBadRequest)
 		return
 	}
 
-	var messageID uint64
+	var messageID int64
 	messageIDstr := r.URL.Query().Get("messageID")
 	if messageIDstr == "" {
 		messageID = 0
 	} else {
-		messageID, err = strconv.ParseUint(messageIDstr, 10, 64)
+		messageID, err = strconv.ParseInt(messageIDstr, 10, 64)
 		if err != nil {
 			http.Error(w, "Invalid message ID", http.StatusBadRequest)
 			return
@@ -94,7 +94,12 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT
-			messages.*,
+			messages.id,
+			messages.channel_id,
+			messages.user_id,
+			messages.message,
+			messages.attachments,
+			messages.edited,
 			users.display_name,
 			users.picture
 		FROM
@@ -102,13 +107,13 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 		JOIN
 			users ON messages.user_id = users.id
 		WHERE
-			messages.channel_ID = ? AND (messages.id < ? OR ? = 0)
+			messages.channel_ID = $1 AND (messages.id < $2 OR $2 = 0)
 		ORDER BY
-			messages.id DESC
+			messages.created_at DESC
 		LIMIT 25;
 	`
 
-	rows, err := db.Query(query, channelID, messageID, messageID)
+	rows, err := db.Query(query, channelID, messageID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -158,23 +163,23 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 
 func DeleteMessage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
-	messageID, err := strconv.ParseUint(r.URL.Query().Get("messageID"), 10, 64)
+	messageID, err := strconv.ParseInt(r.URL.Query().Get("messageID"), 10, 64)
 	if err != nil || messageID == 0 {
 		http.Error(w, "Invalid message ID", http.StatusBadRequest)
 		return
 	}
 
-	var channelID uint64
-	err = db.QueryRow("SELECT channel_id FROM messages WHERE id = ?", messageID).Scan(&channelID)
+	var channelID int64
+	err = db.QueryRow("SELECT channel_id FROM messages WHERE id = $1", messageID).Scan(&channelID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	_, err = db.Exec("DELETE FROM messages WHERE id = ? AND user_id = ?", messageID, userID)
+	_, err = db.Exec("DELETE FROM messages WHERE id = $1 AND user_id = $2", messageID, userID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

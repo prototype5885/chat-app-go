@@ -42,7 +42,7 @@ func ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO users (id, email, username, display_name, picture, password) VALUES(?, ?, ?,  ?, ?, ?)",
+	_, err = db.Exec("INSERT INTO users (id, email, username, display_name, picture, password) VALUES($1, $2, $3, $4, $5, $6)",
 		u.ID, u.Email, u.UserName, u.DisplayName, u.Picture, u.Password)
 	if err != nil {
 		sugar.Error(err)

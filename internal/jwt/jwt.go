@@ -9,8 +9,8 @@ import (
 )
 
 type UserToken struct {
-	UserID   uint64 `json:"userID"`
-	Remember bool   `json:"rem"`
+	UserID   int64 `json:"userID"`
+	Remember bool  `json:"rem"`
 	jwt.RegisteredClaims
 }
 
@@ -22,7 +22,7 @@ func Setup(_key string, _isHttps bool) {
 	isHttps = _isHttps
 }
 
-func CreateToken(rememberMe bool, userId uint64) (http.Cookie, error) {
+func CreateToken(rememberMe bool, userId int64) (http.Cookie, error) {
 	var tokenLifeTime time.Duration
 	if rememberMe {
 		tokenLifeTime = time.Hour * 24 * 7 * 4 // 4 weeks

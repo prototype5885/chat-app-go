@@ -12,9 +12,9 @@ import (
 
 func CreateChannel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
-	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
+	serverID, err := strconv.ParseInt(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
@@ -50,7 +50,7 @@ func CreateChannel(w http.ResponseWriter, r *http.Request) {
 		Name:     channelName,
 	}
 
-	_, err = db.Exec("INSERT INTO channels VALUES(?, ?, ?)", channel.ID, channel.ServerID, channel.Name)
+	_, err = db.Exec("INSERT INTO channels (id, server_id, name) VALUES($1, $2, $3)", channel.ID, channel.ServerID, channel.Name)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
@@ -68,9 +68,9 @@ func CreateChannel(w http.ResponseWriter, r *http.Request) {
 
 func GetChannelList(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sessionID := ctx.Value(SessionIDKeyType{}).(uint64)
+	sessionID := ctx.Value(SessionIDKeyType{}).(int64)
 
-	serverID, err := strconv.ParseUint(r.URL.Query().Get("serverID"), 10, 64)
+	serverID, err := strconv.ParseInt(r.URL.Query().Get("serverID"), 10, 64)
 	if err != nil || serverID == 0 {
 		http.Error(w, "Invalid server ID", http.StatusBadRequest)
 		return
@@ -78,7 +78,7 @@ func GetChannelList(w http.ResponseWriter, r *http.Request) {
 
 	// TODO check if user is member of server
 
-	rows, err := db.Query("SELECT * FROM channels WHERE server_id = ?", serverID)
+	rows, err := db.Query("SELECT id, server_id, name FROM channels WHERE server_id = $1", serverID)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)

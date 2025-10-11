@@ -7,7 +7,7 @@ import (
 
 func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := ctx.Value(UserIDKeyType{}).(uint64)
+	userID := ctx.Value(UserIDKeyType{}).(int64)
 
 	hub.HandleClient(w, r, userID)
 }
