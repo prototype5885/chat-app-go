@@ -43,9 +43,6 @@ func Subscribe(channel int64, channelType string, sessionID int64) error {
 	if selfContained {
 		localPubSubMutex.Lock()
 		defer localPubSubMutex.Unlock()
-	} else {
-		client.mutex.Lock()
-		defer client.mutex.Unlock()
 	}
 
 	unsub := func(oldKey string, sessionID int64) error {

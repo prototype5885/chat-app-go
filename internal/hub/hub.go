@@ -43,7 +43,6 @@ type Client struct {
 	PubSub           *redis.PubSub
 	WsChannel        chan string
 	Ctx              context.Context
-	mutex            sync.Mutex
 }
 
 var clients = make(map[int64]*Client)
@@ -138,7 +137,7 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 	setClient(sessionID, client)
 
 	// listening to redis pub/sub messages to send them to client
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	var redisChannel <-chan *redis.Message
