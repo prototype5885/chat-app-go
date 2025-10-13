@@ -14,6 +14,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
+	"syscall"
 
 	"github.com/bwmarrin/snowflake"
 	_ "github.com/lib/pq"
@@ -165,6 +167,36 @@ func main() {
 	email.Setup(cfg, fullAddress)
 
 	jwt.Setup(cfg.JwtSecret, isHttps)
+
+	// handling termination
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigChan
+		sugar.Infof("Received termination signal: %s", sig.String())
+
+		issue := false
+		sugar.Debug("Closing database connection...")
+		err = db.Close()
+		if err != nil {
+			sugar.Error(err)
+			issue = true
+		}
+
+		if !cfg.SelfContained {
+			sugar.Debug("Closing redis connection...")
+			err = redisClient.Close()
+			if err != nil {
+				sugar.Error(err)
+				issue = true
+			}
+		}
+
+		if issue {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}()
 
 	fmt.Printf("Server is running on %s\n", fullAddress)
 
