@@ -21,7 +21,6 @@
 go.work
 
 # Others
-config.json
 *.log
 *.crt
 *.key
@@ -34,3 +33,4 @@ public/
 static/
 chatapp-backend
 .idea/
+.env

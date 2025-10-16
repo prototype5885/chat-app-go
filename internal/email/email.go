@@ -15,7 +15,7 @@ var fullServerAddress string
 
 func Setup(cfg *models.ConfigFile, _fullServerAddress string) {
 	server = cfg.SmtpServer
-	address = fmt.Sprintf("%s:%d", cfg.SmtpServer, cfg.SmtpPort)
+	address = fmt.Sprintf("%s:%s", cfg.SmtpServer, cfg.SmtpPort)
 	username = cfg.SmtpUsername
 	password = cfg.SmtpPassword
 	fullServerAddress = _fullServerAddress

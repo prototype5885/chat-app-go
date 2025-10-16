@@ -9,15 +9,15 @@ import (
 	"chatapp-backend/internal/keyValue"
 	"chatapp-backend/internal/models"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/bwmarrin/snowflake"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
@@ -64,28 +64,39 @@ func setupLogger(cfg *models.ConfigFile) (*zap.SugaredLogger, error) {
 }
 
 func readConfigFile() (*models.ConfigFile, error) {
-	var cfg models.ConfigFile
-
-	configFile, err := os.Open("config.json")
+	var err error
+	err = godotenv.Load()
 	if err != nil {
-		return &cfg, err
-	}
-	defer func() {
-		err := configFile.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
-
-	bytes, err := io.ReadAll(configFile)
-	if err != nil {
-		return &cfg, err
+		return nil, err
 	}
 
-	err = json.Unmarshal(bytes, &cfg)
+	cfg := models.ConfigFile{}
+
+	cfg.HostAddress = os.Getenv("HOST_ADDRESS")
+	cfg.HostPort = os.Getenv("HOST_PORT")
+	//cfg.BehindNginx = os.Getenv("BEHIND_NGINX") == "true"
+	cfg.TlsCert = os.Getenv("TLS_CERT")
+	cfg.TlsKey = os.Getenv("TLS_KEY")
+	cfg.Cors = os.Getenv("CORS") == "true"
+	cfg.PrintHttpRequests = os.Getenv("PRINT_HTTP_REQUESTS") == "true"
+	cfg.LogToFile = os.Getenv("LOG_TO_FILE") == "true"
+	cfg.LogLevel = os.Getenv("LOG_LEVEL")
+	cfg.JwtSecret = os.Getenv("JWT_SECRET")
+	cfg.SnowflakeWorkerID, err = strconv.ParseInt(os.Getenv("SNOWFLAKE_WORKER_ID"), 10, 64)
 	if err != nil {
-		return &cfg, err
+		return nil, err
 	}
+	cfg.SelfContained = os.Getenv("SELF_CONTAINED") == "true"
+	cfg.DbUser = os.Getenv("DB_USER")
+	cfg.DbPassword = os.Getenv("DB_PASSWORD")
+	cfg.DbAddress = os.Getenv("DB_ADDRESS")
+	cfg.DbPort = os.Getenv("DB_PORT")
+	cfg.DbDatabase = os.Getenv("DB_DATABASE")
+	cfg.SmtpUsername = os.Getenv("SMTP_USERNAME")
+	cfg.SmtpPassword = os.Getenv("SMTP_PASSWORD")
+	cfg.SmtpServer = os.Getenv("SMTP_SERVER")
+	cfg.SmtpPort = os.Getenv("SMTP_PORT")
+
 	return &cfg, nil
 }
 
@@ -162,7 +173,7 @@ func main() {
 		httpProtocol = "http"
 	}
 
-	fullAddress := fmt.Sprintf("%s://%s:%s", httpProtocol, cfg.Address, cfg.Port)
+	fullAddress := fmt.Sprintf("%s://%s:%s", httpProtocol, cfg.HostAddress, cfg.HostPort)
 
 	email.Setup(cfg, fullAddress)
 

@@ -34,9 +34,9 @@ type Message struct {
 }
 
 type ConfigFile struct {
-	Address           string
-	Port              string
-	BehindNginx       bool
+	HostAddress string
+	HostPort    string
+	//BehindNginx       bool
 	TlsCert           string
 	TlsKey            string
 	Cors              bool
@@ -54,5 +54,5 @@ type ConfigFile struct {
 	SmtpUsername      string
 	SmtpPassword      string
 	SmtpServer        string
-	SmtpPort          int
+	SmtpPort          string
 }

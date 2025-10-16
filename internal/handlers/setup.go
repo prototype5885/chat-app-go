@@ -119,17 +119,17 @@ func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db
 
 	var websocketPath string
 
-	if cfg.BehindNginx {
-		websocketPath = "/ws/"
-	} else {
-		websocketPath = "/ws"
-		r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
-		r.Handle("/*", http.FileServer(http.Dir("./static")))
-	}
+	//if cfg.BehindNginx {
+	//	websocketPath = "/ws/"
+	//} else {
+	websocketPath = "/ws"
+	r.Handle("/cdn/*", http.StripPrefix("/cdn/", http.FileServer(http.Dir("./public"))))
+	r.Handle("/*", http.FileServer(http.Dir("./static")))
+	//}
 
 	r.With(UserVerifier).Get(websocketPath, HandleWebSocket)
 
-	address := fmt.Sprintf("%s:%s", cfg.Address, cfg.Port)
+	address := fmt.Sprintf("%s:%s", cfg.HostAddress, cfg.HostPort)
 
 	if isHttps {
 		return http.ListenAndServeTLS(address, cfg.TlsCert, cfg.TlsKey, r)
