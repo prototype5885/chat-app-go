@@ -11,7 +11,7 @@ func Subscribe(channel int64, channelType string, sessionID int64) error {
 	client, exists := GetClient(sessionID)
 	if !exists {
 		debugText := "redis channel"
-		if selfContained {
+		if !useRedis {
 			debugText = "local channel"
 		}
 
@@ -19,7 +19,7 @@ func Subscribe(channel int64, channelType string, sessionID int64) error {
 	}
 
 	unsub := func(oldKey string, sessionID int64) error {
-		if selfContained {
+		if !useRedis {
 			localPubSub.Unsubscribe(oldKey, sessionID)
 		} else {
 			err := client.PubSub.Unsubscribe(client.Ctx, oldKey)
@@ -56,7 +56,7 @@ func Subscribe(channel int64, channelType string, sessionID int64) error {
 
 	newKey := fmt.Sprintf("%s:%d", channelType, channel)
 
-	if selfContained {
+	if !useRedis {
 		localPubSub.Subscribe(newKey, sessionID)
 	} else {
 		err := client.PubSub.Subscribe(client.Ctx, newKey)
@@ -94,7 +94,7 @@ func Emit(messageType string, channelType string, message any, _channel int64) e
 
 	sugar.Debugf("Sending message to those on channel %s", channel)
 
-	if selfContained {
+	if !useRedis {
 		localPubSub.Publish(channel, buf.String())
 	} else {
 		err = redisClient.Publish(redisCtx, channel, buf.String()).Err()

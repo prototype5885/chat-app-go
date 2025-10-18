@@ -86,16 +86,25 @@ func readConfigFile() (*models.ConfigFile, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.SelfContained = os.Getenv("SELF_CONTAINED") == "true"
-	cfg.DbUser = os.Getenv("DB_USER")
-	cfg.DbPassword = os.Getenv("DB_PASSWORD")
-	cfg.DbAddress = os.Getenv("DB_ADDRESS")
-	cfg.DbPort = os.Getenv("DB_PORT")
-	cfg.DbDatabase = os.Getenv("DB_DATABASE")
-	cfg.SmtpUsername = os.Getenv("SMTP_USERNAME")
-	cfg.SmtpPassword = os.Getenv("SMTP_PASSWORD")
-	cfg.SmtpServer = os.Getenv("SMTP_SERVER")
-	cfg.SmtpPort = os.Getenv("SMTP_PORT")
+
+	cfg.UseRedis = os.Getenv("USE_REDIS") == "true"
+
+	cfg.UsePostgres = os.Getenv("USE_POSTGRES") == "true"
+	if cfg.UsePostgres {
+		cfg.DbUser = os.Getenv("DB_USER")
+		cfg.DbPassword = os.Getenv("DB_PASSWORD")
+		cfg.DbAddress = os.Getenv("DB_ADDRESS")
+		cfg.DbPort = os.Getenv("DB_PORT")
+		cfg.DbDatabase = os.Getenv("DB_DATABASE")
+	}
+
+	cfg.UseSmtp = os.Getenv("USE_SMTP") == "true"
+	if cfg.UseSmtp {
+		cfg.SmtpUsername = os.Getenv("SMTP_USERNAME")
+		cfg.SmtpPassword = os.Getenv("SMTP_PASSWORD")
+		cfg.SmtpServer = os.Getenv("SMTP_SERVER")
+		cfg.SmtpPort = os.Getenv("SMTP_PORT")
+	}
 
 	return &cfg, nil
 }
@@ -143,7 +152,7 @@ func main() {
 
 	var redisClient *redis.Client = nil
 
-	if cfg.SelfContained {
+	if !cfg.UseRedis {
 		fmt.Println("Using local key/value and pub/sub service...")
 	} else {
 		fmt.Println("Connecting to redis...")
@@ -153,9 +162,9 @@ func main() {
 		}
 	}
 
-	keyValue.Setup(sugar, redisClient, cfg.SelfContained)
+	keyValue.Setup(sugar, redisClient, cfg.UseRedis)
 
-	hub.Setup(sugar, redisClient, cfg.SelfContained)
+	hub.Setup(sugar, redisClient, cfg.UseRedis)
 
 	fmt.Printf("Setting up snowflake ID generator using node number %d...\n", cfg.SnowflakeWorkerID)
 	snowflake.Epoch = 1420070400000 // discord epoch to make date extracting compatible
@@ -194,7 +203,7 @@ func main() {
 			issue = true
 		}
 
-		if !cfg.SelfContained {
+		if cfg.UseRedis {
 			sugar.Debug("Closing redis connection...")
 			err = redisClient.Close()
 			if err != nil {

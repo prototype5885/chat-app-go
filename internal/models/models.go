@@ -45,12 +45,14 @@ type ConfigFile struct {
 	LogLevel          string
 	JwtSecret         string
 	SnowflakeWorkerID int64
-	SelfContained     bool
+	UseRedis          bool
+	UsePostgres       bool
 	DbUser            string
 	DbPassword        string
 	DbAddress         string
 	DbPort            string
 	DbDatabase        string
+	UseSmtp           bool
 	SmtpUsername      string
 	SmtpPassword      string
 	SmtpServer        string

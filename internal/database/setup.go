@@ -58,7 +58,7 @@ func Setup(cfg *models.ConfigFile) (*sql.DB, error) {
 	var db *sql.DB
 	var err error
 
-	if cfg.SelfContained {
+	if !cfg.UsePostgres {
 		fmt.Println("Connecting to database sqlite...")
 		db, err = sql.Open("sqlite3", "./database.db")
 		if err != nil {

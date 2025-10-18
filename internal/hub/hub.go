@@ -51,14 +51,14 @@ var clientsMutex sync.RWMutex
 var sugar *zap.SugaredLogger
 var redisClient *redis.Client
 var localPubSub LocalPubSub
-var selfContained bool
+var useRedis bool
 
 var redisCtx = context.Background()
 
-func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained bool) {
+func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _useRedis bool) {
 	sugar = _sugar
 	redisClient = _redisClient
-	selfContained = _selfContained
+	useRedis = _useRedis
 
 	localPubSub.Setup()
 }
@@ -110,7 +110,7 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 	defer cancel()
 
 	var pubsub *redis.PubSub
-	if !selfContained {
+	if useRedis {
 		pubsub = redisClient.Subscribe(clientCtx)
 		defer func() {
 			err := pubsub.Unsubscribe(clientCtx)
@@ -233,7 +233,7 @@ func setClient(sessionID int64, client *Client) {
 
 func deleteClient(sessionID int64) {
 	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
-	if selfContained {
+	if !useRedis {
 		localPubSub.UnsubscribeFromAll(sessionID)
 	}
 

@@ -22,14 +22,14 @@ var hashmap = make(map[string]Value)
 var sugar *zap.SugaredLogger
 var redisClient *redis.Client
 var redisCtx = context.Background()
-var selfContained = true
+var useRedis = true
 
-func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _selfContained bool) {
+func Setup(_sugar *zap.SugaredLogger, _redisClient *redis.Client, _useRedis bool) {
 	sugar = _sugar
 	redisClient = _redisClient
-	selfContained = _selfContained
+	useRedis = _useRedis
 
-	if selfContained {
+	if !useRedis {
 		go checkForLocalExpiredKeys()
 	}
 }
@@ -53,7 +53,7 @@ func checkForLocalExpiredKeys() {
 
 func Get(key string) (string, error) {
 	debugText := fmt.Sprintf("Getting value of key [%s]", key)
-	if selfContained {
+	if !useRedis {
 		sugar.Debugf("%s from hashmap", debugText)
 
 		mutex.RLock()
@@ -78,7 +78,7 @@ func Get(key string) (string, error) {
 
 func GetDel(key string) (string, error) {
 	debugText := fmt.Sprintf("Getting and deleting value of key [%s]", key)
-	if selfContained {
+	if !useRedis {
 		sugar.Debugf("%s from hashmap", debugText)
 
 		mutex.Lock()
@@ -104,7 +104,7 @@ func GetDel(key string) (string, error) {
 
 func Set(key string, value string, expires time.Duration) error {
 	debugText := fmt.Sprintf("Setting value of key [%s] to [%s]", key, value)
-	if selfContained {
+	if !useRedis {
 		sugar.Debugf("%s in hashmap", debugText)
 
 		mutex.Lock()
