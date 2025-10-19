@@ -35,7 +35,9 @@ func Setup(_isHttps bool, cfg *models.ConfigFile, _sugar *zap.SugaredLogger, _db
 
 	r := chi.NewRouter()
 
-	r.Use(httprate.LimitByIP(100, time.Minute))
+	if cfg.RateLimiting {
+		r.Use(httprate.LimitByIP(100, time.Minute))
+	}
 
 	if cfg.Cors {
 		r.Use(AllowCors)

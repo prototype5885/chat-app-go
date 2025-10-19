@@ -77,6 +77,7 @@ func readConfigFile() (*models.ConfigFile, error) {
 	//cfg.BehindNginx = os.Getenv("BEHIND_NGINX") == "true"
 	cfg.TlsCert = os.Getenv("TLS_CERT")
 	cfg.TlsKey = os.Getenv("TLS_KEY")
+	cfg.RateLimiting = os.Getenv("RATE_LIMITING") == "true"
 	cfg.Cors = os.Getenv("CORS") == "true"
 	cfg.PrintHttpRequests = os.Getenv("PRINT_HTTP_REQUESTS") == "true"
 	cfg.LogToFile = os.Getenv("LOG_TO_FILE") == "true"

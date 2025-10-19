@@ -39,6 +39,7 @@ type ConfigFile struct {
 	//BehindNginx       bool
 	TlsCert           string
 	TlsKey            string
+	RateLimiting      bool
 	Cors              bool
 	PrintHttpRequests bool
 	LogToFile         bool
