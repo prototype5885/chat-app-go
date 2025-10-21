@@ -5,15 +5,50 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
+
+	"github.com/disintegration/imaging"
 )
 
 var mutex sync.Mutex
+
+func Encode(inputBytes []byte) ([]byte, error) {
+	img, _, err := image.Decode(bytes.NewReader(inputBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	// if height is larger than width, crop height to same size as width,
+	// else if width is larger than height, crop width to the same size as height
+	if img.Bounds().Dy() > img.Bounds().Dx() {
+		img = imaging.CropCenter(img, img.Bounds().Dx(), img.Bounds().Dx())
+	} else if img.Bounds().Dx() > img.Bounds().Dy() {
+		img = imaging.CropCenter(img, img.Bounds().Dy(), img.Bounds().Dy())
+	}
+
+	if img.Bounds().Dx() != img.Bounds().Dy() {
+		return nil, fmt.Errorf("processed avatar didn't end up being in square dimension, it's: [%dx%d]", img.Bounds().Dx(), img.Bounds().Dy())
+	}
+
+	// resize to 256x256 width if larger
+	if img.Bounds().Dx() > 256 || img.Bounds().Dy() > 256 {
+		img = imaging.Resize(img, 256, 256, imaging.Lanczos)
+	}
+
+	var buf bytes.Buffer
+	err = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 50})
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
 
 func HandleAvatarPicture(r *http.Request) (string, error) {
 	// parse formfile
@@ -34,62 +69,17 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	cmd := exec.Command(
-		"ffmpeg",
-		"-i", "pipe:0",
-		"-vf", "crop=min(iw\\,ih):min(iw\\,ih):(iw-min(iw\\,ih))/2:(ih-min(iw\\,ih))/2,scale=256:256",
-		"-vframes", "1",
-		"-c:v", "libwebp",
-		"-quality", "50",
-		"-preset", "default",
-		"-f", "webp",
-		"pipe:1",
-	)
-
-	// print ffmpeg result
-	// cmd.Stderr = os.Stderr
-
-	// this will send the input picture bytes to ffmpeg
-	stdin, err := cmd.StdinPipe()
+	// encode into jpg
+	resultBytes, err := Encode(inputBytes)
 	if err != nil {
 		return "", err
 	}
-
-	// this will store the converted image result
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
-
-	// start the command
-	err = cmd.Start()
-	if err != nil {
-		return "", err
-	}
-
-	// send the input bytes
-	_, err = stdin.Write(inputBytes)
-	if err != nil {
-		return "", err
-	}
-
-	err = stdin.Close()
-	if err != nil {
-		return "", err
-	}
-
-	// wait for it to finish
-	err = cmd.Wait()
-	if err != nil {
-		return "", err
-	}
-
-	// read the converted image bytes back
-	resultBytes := stdout.Bytes()
 
 	// use the hash for filename
 	hash := sha256.Sum256(resultBytes)
 
 	// construct the full path for saving
-	fileName := hex.EncodeToString(hash[:]) + ".webp"
+	fileName := hex.EncodeToString(hash[:]) + ".jpg"
 	folderPath := filepath.Join(".", "public", "avatars")
 	fullPath := filepath.Join(folderPath, fileName)
 
@@ -102,9 +92,8 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 		return "", nil
 	}
 
-	// check if avatar with same hash exists already
+	// don't overwrite if file already exists
 	_, err = os.Stat(fullPath)
-	// if it doesn't exist, write it
 	if os.IsNotExist(err) {
 		err = os.WriteFile(fullPath, resultBytes, 0644)
 		if err != nil {
@@ -114,6 +103,5 @@ func HandleAvatarPicture(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	// no error
 	return fileName, nil
 }

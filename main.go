@@ -11,7 +11,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -138,12 +137,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 		return
-	}
-
-	fmt.Println("Looking for ffmpeg...")
-	_, err = exec.LookPath("ffmpeg")
-	if err != nil {
-		sugar.Fatal(err)
 	}
 
 	db, err := database.Setup(cfg)
