@@ -4,6 +4,9 @@ import (
 	"chatapp-backend/internal/models"
 	"database/sql"
 	"fmt"
+
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func setPragmaValues(db *sql.DB) error {
