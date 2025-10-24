@@ -20,6 +20,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9/maintnotifications"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -111,9 +112,10 @@ func readConfigFile() (*models.ConfigFile, error) {
 
 func setupRedis() (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
+		Addr:                     "localhost:6379",
+		Password:                 "",
+		DB:                       0,
+		MaintNotificationsConfig: &maintnotifications.Config{Mode: maintnotifications.ModeDisabled},
 	})
 
 	err := rdb.Ping(context.Background()).Err()
