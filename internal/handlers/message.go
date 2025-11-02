@@ -140,11 +140,15 @@ func GetMessageList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = hub.Subscribe(channelID, globals.ChannelTypeChannel, sessionID)
-	if err != nil {
-		sugar.Error(err)
-		http.Error(w, "", http.StatusInternalServerError)
-		return
+	// only subscribe client to channel if it's the initial message list request,
+	// which is when client doesn't send messageID prameter
+	if messageID == 0 {
+		err = hub.Subscribe(channelID, globals.ChannelTypeChannel, sessionID)
+		if err != nil {
+			sugar.Error(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	err = json.NewEncoder(w).Encode(messages)
