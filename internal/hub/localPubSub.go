@@ -55,7 +55,7 @@ func (ps *LocalPubSub) Publish(channel string, message string) {
 	for i := range sessionIDs {
 		client, exists := GetClient(sessionIDs[i])
 		if exists {
-			client.WsChannel <- message
+			client.LocalChannel <- message
 		} else {
 			sugar.Warnf("Session ID %d is supposed to be available", sessionIDs[i])
 		}

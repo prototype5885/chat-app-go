@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -41,8 +40,10 @@ type Client struct {
 	CurrentServerID  int64
 	CurrentChannelID int64
 	PubSub           *redis.PubSub
-	WsChannel        chan string
+	LocalChannel     chan string
 	Ctx              context.Context
+	CtxCancel        context.CancelFunc
+	PingTimer        *time.Ticker
 }
 
 var clients = make(map[int64]*Client)
@@ -91,156 +92,159 @@ func HandleClient(w http.ResponseWriter, r *http.Request, userID int64) {
 		EnableCompression: true,
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	client := &Client{
+		UserID:       userID,
+		SessionID:    sessionID,
+		LocalChannel: make(chan string, 100),
+		PingTimer:    time.NewTicker(15 * time.Second),
+	}
+
+	client.Conn, err = upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		sugar.Error(err)
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			sugar.Error(err)
-			return
-		}
-	}()
+	client.Ctx, client.CtxCancel = context.WithCancel(context.Background())
 
-	clientCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	var pubsub *redis.PubSub
 	if useRedis {
-		pubsub = redisClient.Subscribe(clientCtx)
-		defer func() {
-			err := pubsub.Unsubscribe(clientCtx)
-			if err != nil && !strings.EqualFold(err.Error(), "redis: client is closed") {
-				sugar.Error(err)
-				return
-			}
-		}()
-		defer func() {
-			err := pubsub.Close()
-			if err != nil {
-				sugar.Error(err)
-				return
-			}
-		}()
-	}
-
-	client := &Client{
-		UserID:    userID,
-		Conn:      conn,
-		SessionID: sessionID,
-		PubSub:    pubsub,
-		WsChannel: make(chan string),
-		Ctx:       clientCtx,
+		client.PubSub = redisClient.Subscribe(client.Ctx)
 	}
 
 	setClient(sessionID, client)
-
-	// listening to redis pub/sub messages to send them to client
-	ticker := time.NewTicker(15 * time.Second)
-	defer ticker.Stop()
+	defer deleteClient(sessionID)
 
 	var redisChannel <-chan *redis.Message
 	if client.PubSub != nil {
 		redisChannel = client.PubSub.Channel()
 	}
 
+	// handling incoming messages from client
 	go func() {
+		defer client.CtxCancel()
 		for {
-			select {
-			case <-client.Ctx.Done():
+			if client.Conn == nil {
 				return
-			case msg, ok := <-redisChannel:
-				if pubsub == nil && !ok {
-					return
-				}
-				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-				if err != nil {
-					return
-				}
-				err = conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
-				if err != nil {
-					sugar.Error(err)
-					return
-				}
-			case msg, ok := <-client.WsChannel:
-				if !ok {
-					return
-				}
-				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			}
+
+			client.Conn.SetReadLimit(maxMessageSize)
+			err := client.Conn.SetReadDeadline(time.Now().Add(pongWaitTime))
+			if err != nil {
+				sugar.Error(err)
+				return
+			}
+			client.Conn.SetPongHandler(func(string) error {
+				err := client.Conn.SetReadDeadline(time.Now().Add(pongWaitTime))
 				if err != nil {
 					sugar.Error(err)
-					return
+					return err
 				}
-				err = conn.WriteMessage(websocket.TextMessage, []byte(msg))
-				if err != nil {
+				return nil
+			})
+			_, _, err = client.Conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					sugar.Error(err)
-					return
 				}
-			case <-ticker.C:
-				err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-				if err != nil {
-					sugar.Error(err)
-					return
-				}
-				err = conn.WriteMessage(websocket.PingMessage, nil)
-				if err != nil {
-					sugar.Error(err)
-					return
-				}
+				return
 			}
 		}
 	}()
 
-	// listening to incoming messages directly from client
+	// handling sending messages to client
 	for {
-		conn.SetReadLimit(maxMessageSize)
-		err := conn.SetReadDeadline(time.Now().Add(pongWaitTime))
-		if err != nil {
-			sugar.Error(err)
-			break
-		}
-		conn.SetPongHandler(func(string) error {
-			err := conn.SetReadDeadline(time.Now().Add(pongWaitTime))
+		select {
+		case <-client.Ctx.Done():
+			return
+		case msg, ok := <-redisChannel:
+			if client.PubSub == nil || client.Conn == nil || !ok {
+				return
+			}
+			err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				return
+			}
+			err = client.Conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
 			if err != nil {
 				sugar.Error(err)
-				return err
+				return
 			}
-			return nil
-		})
-		_, _, err = conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+		case msg, ok := <-client.LocalChannel:
+			if client.Conn == nil || !ok {
+				return
+			}
+			err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
 				sugar.Error(err)
+				return
 			}
-			break
+			err = client.Conn.WriteMessage(websocket.TextMessage, []byte(msg))
+			if err != nil {
+				sugar.Error(err)
+				return
+			}
+		case <-client.PingTimer.C:
+			if client.Conn == nil {
+				return
+			}
+
+			err := client.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				sugar.Error(err)
+				return
+			}
+			err = client.Conn.WriteMessage(websocket.PingMessage, nil)
+			if err != nil {
+				sugar.Error(err)
+				return
+			}
 		}
 	}
-
-	deleteClient(sessionID)
 }
 
 func setClient(sessionID int64, client *Client) {
 	sugar.Debugf("Adding user ID [%d] to clients as session ID [%d]", client.UserID, sessionID)
-	clientsMutex.Lock()
-	defer clientsMutex.Unlock()
 
+	clientsMutex.Lock()
 	clients[sessionID] = client
+	clientsMutex.Unlock()
 }
 
 func deleteClient(sessionID int64) {
 	sugar.Debugf("Removing Session ID [%d] from clients", sessionID)
-	if !useRedis {
+
+	client, exists := GetClient(sessionID)
+	if !exists {
+		return
+	}
+
+	if useRedis {
+		err := client.PubSub.Unsubscribe(client.Ctx)
+		if err != nil && !errors.Is(err, redis.ErrClosed) {
+			sugar.Error(err)
+		}
+		err = client.PubSub.Close()
+		if err != nil {
+			sugar.Error(err)
+		}
+	} else {
 		localPubSub.UnsubscribeFromAll(sessionID)
 	}
 
-	clientsMutex.Lock()
-	defer clientsMutex.Unlock()
+	client.CtxCancel()
+	client.PingTimer.Stop()
+	close(client.LocalChannel)
 
+	err := client.Conn.Close()
+	if err != nil {
+		sugar.Error(err)
+	}
+
+	clientsMutex.Lock()
 	delete(clients, sessionID)
+	clientsMutex.Unlock()
+
 }
 
 func GetClient(sessionID int64) (*Client, bool) {
