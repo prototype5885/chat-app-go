@@ -254,3 +254,16 @@ func GetClient(sessionID int64) (*Client, bool) {
 	client, exists := clients[sessionID]
 	return client, exists
 }
+
+func GetUserID(sessionID int64) int64 {
+	clientsMutex.RLock()
+	defer clientsMutex.RUnlock()
+
+	client, exists := clients[sessionID]
+
+	if exists {
+		return client.UserID
+	} else {
+		return 0
+	}
+}

@@ -20,3 +20,9 @@ func addServerMember(serverID int64, userID int64) error {
 	}
 	return nil
 }
+
+func isServerMember(serverID int64, userID int64) (bool, error) {
+	var isMember bool = false
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)", serverID, userID).Scan(&isMember)
+	return isMember, err
+}

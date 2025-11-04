@@ -70,7 +70,24 @@ func GetChannelList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO check if user is member of server
+	userID := hub.GetUserID(sessionID)
+	if userID == 0 {
+		sugar.Error("Session ID %d is supposed to have a user ID", sessionID)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	isMember, err := isServerMember(serverID, userID)
+	if err != nil {
+		sugar.Error(err)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	if !isMember {
+		http.Error(w, "You are not member of given server", http.StatusUnauthorized)
+		return
+	}
 
 	rows, err := db.Query("SELECT id, server_id, name FROM channels WHERE server_id = $1", serverID)
 	if err != nil {
